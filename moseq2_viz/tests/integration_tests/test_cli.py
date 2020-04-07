@@ -119,7 +119,7 @@ class TestCLI(TestCase):
         max_syllable = 5
         runner = CliRunner()
     
-        crowd_params = [input_dir+'test_index.yaml',
+        crowd_params = [input_dir+'test_index_crowd.yaml',
                         input_dir+'mock_model.p',
                         '-o', crowd_dir,
                         '--max-syllable', max_syllable,

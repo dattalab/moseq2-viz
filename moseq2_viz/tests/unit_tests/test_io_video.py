@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 
 
 class TestIOVideo(TestCase):
+
+    def test_write_crowd_movies(self):
+        print()
+
     def test_write_frames_preview(self):
 
         video_file = 'data/'
