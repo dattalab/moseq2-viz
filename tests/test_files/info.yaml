@@ -1,6 +1,0 @@
-model_class: FastARWeakLimitStickyHDPHMM
-kappa: 2500000.0
-gamma: 1000.0
-alpha: 5.7
-model_path: /Users/aymanzeine/Desktop/Moseq_local/moseq2-viz/tests/test_files/mock_model.p
-index_path: /Users/aymanzeine/Desktop/Moseq_local/moseq2-viz/tests/test_files/test_index.yaml

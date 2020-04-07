@@ -5,6 +5,7 @@ from moseq2_viz.helpers.wrappers import add_group_wrapper, plot_syllable_usages_
         make_crowd_movies_wrapper
 
 def get_groups_command(index_file, output_directory=None):
+
     if output_directory is not None:
         index_file = os.path.join(output_directory, index_file.split('/')[-1])
 
@@ -67,6 +68,7 @@ def add_group_by_subject(index_file, value, group, exact, lowercase, negative, o
     get_groups_command(index_file)
 
 def copy_h5_metadata_to_yaml_command(input_dir, h5_metadata_path):
+
     copy_h5_metadata_to_yaml_wrapper(input_dir, h5_metadata_path)
 
 

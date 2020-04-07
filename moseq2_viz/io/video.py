@@ -1,8 +1,46 @@
-import numpy as np
-import subprocess
-import matplotlib.pyplot as plt
-import tqdm
+import os
 import cv2
+import tqdm
+import warnings
+import subprocess
+import numpy as np
+from cytoolz import partial
+import multiprocessing as mp
+import matplotlib.pyplot as plt
+from moseq2_viz.viz import make_crowd_matrix
+from moseq2_viz.model.util import get_syllable_slices
+
+def write_crowd_movies(sorted_index, config_data, filename_format, vid_parameters, clean_params, ordering,\
+                       labels, label_uuids, max_syllable, max_examples, output_dir):
+    from tqdm.auto import tqdm
+    with mp.Pool() as pool:
+        slice_fun = partial(get_syllable_slices,
+                            labels=labels,
+                            label_uuids=label_uuids,
+                            index=sorted_index)
+        with warnings.catch_warnings():
+            slices = list(tqdm(pool.imap(slice_fun, range(max_syllable)), total=max_syllable, desc='Getting Syllable Slices'))
+
+        matrix_fun = partial(make_crowd_matrix,
+                             nexamples=max_examples,
+                             dur_clip=config_data['dur_clip'],
+                             min_height=config_data['min_height'],
+                             crop_size=vid_parameters['crop_size'],
+                             raw_size=config_data['raw_size'],
+                             scale=config_data['scale'],
+                             legacy_jitter_fix=config_data['legacy_jitter_fix'],
+                             **clean_params)
+
+        with warnings.catch_warnings():
+            crowd_matrices = list(tqdm(pool.imap(matrix_fun, slices), total=max_syllable, desc='Getting Crowd Matrices'))
+
+        write_fun = partial(write_frames_preview, fps=vid_parameters['fps'], depth_min=config_data['min_height'],
+                            depth_max=config_data['max_height'], cmap=config_data['cmap'])
+        pool.starmap(write_fun,
+                     [(os.path.join(output_dir, filename_format.format(i, config_data['count'], ordering[i])),
+                       crowd_matrix)
+                      for i, crowd_matrix in tqdm(enumerate(crowd_matrices), total=max_syllable, desc='Writing Movies') if crowd_matrix is not None])
+
 
 
 def write_frames_preview(filename, frames=np.empty((0,)), threads=6,

@@ -1,14 +1,14 @@
+import re
 import os
 import h5py
+import numpy as np
+from glob import glob
 import ruamel.yaml as yaml
 from cytoolz import curry, compose
 from functools import lru_cache, wraps
+from cytoolz.curried import get_in, keyfilter, valmap
 from cytoolz.itertoolz import peek, pluck, first, groupby
 from cytoolz.dicttoolz import valfilter, merge_with, dissoc, assoc
-from cytoolz.curried import get_in, keyfilter, valmap
-import numpy as np
-import re
-from glob import glob
 
 
 # https://gist.github.com/jaytaylor/3660565

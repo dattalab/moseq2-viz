@@ -4,20 +4,17 @@ import h5py
 import shutil
 import psutil
 import joblib
-import warnings
 import numpy as np
 import pandas as pd
 from sys import platform
 import ruamel.yaml as yaml
 from tqdm.auto import tqdm
-import multiprocessing as mp
-from cytoolz import pluck, partial
 from moseq2_viz.util import parse_index
-from moseq2_viz.io.video import write_frames_preview
+from moseq2_viz.io.video import write_crowd_movies
 from moseq2_viz.scalars.util import scalars_to_dataframe
-from moseq2_viz.viz import (usage_plot, scalar_plot, position_plot, duration_plot, graph_transition_matrix, make_crowd_matrix)
+from moseq2_viz.viz import (usage_plot, scalar_plot, position_plot, duration_plot, graph_transition_matrix)
 from moseq2_viz.util import (recursive_find_h5s, check_video_parameters, h5_to_dict, clean_dict)
-from moseq2_viz.model.util import (relabel_by_usage, get_syllable_slices, parse_model_results, get_syllable_statistics,
+from moseq2_viz.model.util import (relabel_by_usage, parse_model_results, get_syllable_statistics,
                                    merge_models, get_transition_matrix, results_to_dataframe)
 
 def add_group_wrapper(index_file, config_data):
@@ -62,6 +59,10 @@ def add_group_wrapper(index_file, config_data):
 
 
 def plot_scalar_summary_wrapper(index_file, output_file, gui=False):
+
+    if not os.path.exists(os.path.dirname(output_file)):
+        os.makedirs(os.path.dirname(output_file))
+
     index, sorted_index = parse_index(index_file)
     scalar_df = scalars_to_dataframe(sorted_index)
 
@@ -81,6 +82,9 @@ def plot_syllable_usages_wrapper(index_file, model_fit, max_syllable, sort, coun
 
     # if the user passes model directory, merge model states by
     # minimum distance between them relative to first model in list
+    if not os.path.exists(os.path.dirname(output_file)):
+        os.makedirs(os.path.dirname(output_file))
+
     if os.path.isdir(model_fit):
         model_data = merge_models(model_fit, 'p')
     else:
@@ -101,6 +105,9 @@ def plot_syllable_durations_wrapper(index_file, model_fit, groups, count, max_sy
 
     # if the user passes model directory, merge model states by
     # minimum distance between them relative to first model in list
+    if not os.path.exists(os.path.dirname(output_file)):
+        os.makedirs(os.path.dirname(output_file))
+
     if os.path.isdir(model_fit):
         model_data = merge_models(model_fit, 'p')
     else:
@@ -176,6 +183,9 @@ def plot_syllable_durations_wrapper(index_file, model_fit, groups, count, max_sy
 
 
 def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_file, gui=False):
+
+    if not os.path.exists(os.path.dirname(output_file)):
+        os.makedirs(os.path.dirname(output_file))
 
     max_syllable = config_data['max_syllable']
     group = config_data['group']
@@ -352,34 +362,8 @@ def make_crowd_movies_wrapper(index_file, model_path, config_data, output_dir):
     else:
         filename_format = 'syllable_{:d}.mp4'
 
-    with mp.Pool() as pool:
-
-        slice_fun = partial(get_syllable_slices,
-                            labels=labels,
-                            label_uuids=label_uuids,
-                            index=sorted_index)
-        with warnings.catch_warnings():
-            slices = list(tqdm(pool.imap(slice_fun, range(max_syllable)), total=max_syllable, desc='Getting Syllable Slices'))
-
-        matrix_fun = partial(make_crowd_matrix,
-                             nexamples=max_examples,
-                             dur_clip=config_data['dur_clip'],
-                             min_height=config_data['min_height'],
-                             crop_size=vid_parameters['crop_size'],
-                             raw_size=config_data['raw_size'],
-                             scale=config_data['scale'],
-                             legacy_jitter_fix=config_data['legacy_jitter_fix'],
-                             **clean_params)
-        with warnings.catch_warnings():
-            crowd_matrices = list(tqdm(pool.imap(matrix_fun, slices), total=max_syllable, desc='Getting Crowd Matrices'))
-
-        write_fun = partial(write_frames_preview, fps=vid_parameters['fps'], depth_min=config_data['min_height'],
-                            depth_max=config_data['max_height'], cmap=config_data['cmap'])
-        pool.starmap(write_fun,
-                     [(os.path.join(output_dir, filename_format.format(i, config_data['count'], ordering[i])),
-                       crowd_matrix)
-                      for i, crowd_matrix in tqdm(enumerate(crowd_matrices), total=max_syllable, desc='Writing Movies') if crowd_matrix is not None])
-
+    write_crowd_movies(sorted_index, config_data, filename_format, vid_parameters, clean_params, ordering,
+                       labels, label_uuids, max_syllable, max_examples, output_dir)
 
 def copy_h5_metadata_to_yaml_wrapper(input_dir, h5_metadata_path):
     h5s, dicts, yamls = recursive_find_h5s(input_dir)
@@ -389,7 +373,7 @@ def copy_h5_metadata_to_yaml_wrapper(input_dir, h5_metadata_path):
     # load in all of the h5 files, grab the extraction metadata, reformat to make nice 'n pretty
     # then stage the copy
 
-    for i, tup in tqdm.tqdm(enumerate(to_load), total=len(to_load), desc='Copying data to yamls'):
+    for i, tup in tqdm(enumerate(to_load), total=len(to_load), desc='Copying data to yamls'):
         with h5py.File(tup[2], 'r') as f:
             tmp = clean_dict(h5_to_dict(f, h5_metadata_path))
             tup[0]['metadata'] = dict(tmp)

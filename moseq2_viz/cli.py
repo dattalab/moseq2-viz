@@ -1,6 +1,5 @@
 import os
 import click
-from moseq2_extract.helpers.wrappers import generate_index_wrapper
 from moseq2_viz.helpers.wrappers import add_group_wrapper, plot_syllable_usages_wrapper, plot_scalar_summary_wrapper, \
         plot_syllable_durations_wrapper, plot_transition_graph_wrapper, copy_h5_metadata_to_yaml_wrapper, \
         make_crowd_movies_wrapper
@@ -45,17 +44,6 @@ def add_group(index_file, key, value, group, exact, lowercase, negative):
 @click.option('--h5-metadata-path', default='/metadata/acquisition', type=str, help='Path to acquisition metadata in h5 files')
 def copy_h5_metadata_to_yaml(input_dir, h5_metadata_path):
     copy_h5_metadata_to_yaml_wrapper(input_dir, h5_metadata_path)
-
-
-@cli.command(name='generate-index')
-@click.option('--input-dir', '-i', type=click.Path(), default=os.getcwd(), help='Directory to find h5 files')
-@click.option('--pca-file', '-p', type=click.Path(), default=os.path.join(os.getcwd(), '_pca/pca_scores.h5'), help='Path to PCA results')
-@click.option('--output-file', '-o', type=click.Path(), default=os.path.join(os.getcwd(), 'moseq2-index.yaml'), help="Location for storing index")
-@click.option('--filter', '-f', '_filter', type=(str, str), default=None, help='Regex filter for metadata', multiple=True)
-@click.option('--all-uuids', '-a', type=bool, default=False, help='Use all uuids')
-def generate_index(input_dir, pca_file, output_file, _filter, all_uuids):
-    output_file = generate_index_wrapper(input_dir, pca_file, output_file, _filter, all_uuids)
-    print(f'Index file {output_file} has been sucessfully generated')
 
 
 @cli.command(name='make-crowd-movies')

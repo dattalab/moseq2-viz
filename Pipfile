@@ -1,0 +1,40 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+pytest = "*"
+pytest-cov = "*"
+
+[packages]
+six = "*"
+h5py = "*"
+tqdm = "*"
+scipy = "*"
+numpy = "*"
+click = "*"
+psutil = "*"
+cython = "*"
+pandas = "*"
+awscli = "*"
+future = "*"
+joblib = "*"
+sklearn = "*"
+seaborn = "*"
+cytoolz = "*"
+networkx = "*"
+setuptools = "*"
+ipywidgets = "*"
+moseq2-viz = {editable = true, path = "."}
+matplotlib = "*"
+statsmodels = "*"
+hdf5storage = "*"
+ruamel_yaml = "*"
+scikit-image = "*"
+scikit-learn = "*"
+dtaidistance = "*"
+opencv-python = "*"
+
+[requires]
+python_version = "3.6"
