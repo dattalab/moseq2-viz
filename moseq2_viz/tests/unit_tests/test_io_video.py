@@ -1,21 +1,68 @@
 import os
-import cv2
-import tqdm
-import subprocess
+import shutil
+import joblib
 import numpy as np
+import ruamel.yaml as yaml
 from unittest import TestCase
-import matplotlib.pyplot as plt
+from moseq2_viz.util import check_video_parameters, parse_index
+from moseq2_viz.model.util import parse_model_results, relabel_by_usage
+from moseq2_viz.io.video import write_crowd_movies, write_frames_preview
 
 
 class TestIOVideo(TestCase):
 
     def test_write_crowd_movies(self):
-        print()
+
+        index_file = 'data/test_index_crowd.yaml'
+        model_path = 'data/mock_model.p'
+        config_file = 'data/config.yaml'
+        output_dir = 'data/crowd_movies/'
+        max_syllable = 5
+        max_examples = 40
+
+        with open(config_file, 'r') as f:
+            config_data = yaml.safe_load(f)
+        f.close()
+
+        if config_data['sort']:
+            filename_format = 'syllable_sorted-id-{:d} ({})_original-id-{:d}.mp4'
+        else:
+            filename_format = 'syllable_{:d}.mp4'
+
+        model_fit = parse_model_results(joblib.load(model_path))
+        labels = model_fit['labels']
+
+        if 'train_list' in model_fit:
+            label_uuids = model_fit['train_list']
+        else:
+            label_uuids = model_fit['keys']
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        index, sorted_index = parse_index(index_file)
+        vid_parameters = check_video_parameters(sorted_index)
+        clean_params = {
+            'gaussfilter_space': config_data['gaussfilter_space'],
+            'medfilter_space': config_data['medfilter_space']
+        }
+
+        if config_data['sort']:
+            labels, ordering = relabel_by_usage(labels, count=config_data['count'])
+        else:
+            ordering = list(range(max_syllable))
+
+        write_crowd_movies(sorted_index, config_data, filename_format, vid_parameters, clean_params, ordering,
+                           labels, label_uuids, max_syllable, max_examples, output_dir)
+
+        assert (os.path.exists(output_dir))
+        assert (len(os.listdir(output_dir)) == max_syllable)
+        shutil.rmtree(output_dir)
 
     def test_write_frames_preview(self):
 
         video_file = 'data/'
-        filename = os.path.join(video_file, 'test_data.avi')
+        filename = os.path.join(video_file, 'test_data2.avi')
         frames = np.random.randint(0, 256, size=(300, 424, 512), dtype='int16')
         threads = 6
         fps = 30
@@ -35,62 +82,10 @@ class TestIOVideo(TestCase):
         close_pipe=True
         progress_bar=True
 
-        if not np.mod(frames.shape[1], 2) == 0:
-            frames = np.pad(frames, ((0, 0), (0, 1), (0, 0)), 'constant', constant_values=0)
+        out = write_frames_preview(filename, frames, threads, fps, pixel_format, codec, slices, slicecrc,\
+                             frame_size, depth_min, depth_max, get_cmd, cmap, text, text_scale, text_thickness,\
+                             pipe, close_pipe, progress_bar)
 
-        if not np.mod(frames.shape[2], 2) == 0:
-            frames = np.pad(frames, ((0, 0), (0, 0), (0, 1)), 'constant', constant_values=0)
-
-        if not frame_size and type(frames) is np.ndarray:
-            frame_size = '{0:d}x{1:d}'.format(frames.shape[2], frames.shape[1])
-        elif not frame_size and type(frames) is tuple:
-            frame_size = '{0:d}x{1:d}'.format(frames[0], frames[1])
-
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        white = (255, 255, 255)
-        txt_pos = (5, frames.shape[-1] - 40)
-
-        command = ['ffmpeg',
-                   '-y',
-                   '-loglevel', 'fatal',
-                   '-threads', str(threads),
-                   '-framerate', str(fps),
-                   '-f', 'rawvideo',
-                   '-s', frame_size,
-                   '-pix_fmt', pixel_format,
-                   '-i', '-',
-                   '-an',
-                   '-vcodec', codec,
-                   '-slices', str(slices),
-                   '-slicecrc', str(slicecrc),
-                   '-r', str(fps),
-                   '-pix_fmt', 'yuv420p',
-                   filename]
-
-        if get_cmd:
-            return command
-
-        if not pipe:
-            pipe = subprocess.Popen(
-                command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        # scale frames d00d
-
-        use_cmap = plt.get_cmap(cmap)
-
-        for i in tqdm.tqdm(range(frames.shape[0]), desc="Writing frames", disable=~progress_bar):
-            disp_img = frames[i, ...].copy().astype('float32')
-            disp_img = (disp_img-depth_min)/(depth_max-depth_min)
-            disp_img[disp_img < 0] = 0
-            disp_img[disp_img > 1] = 1
-            disp_img = np.delete(use_cmap(disp_img), 3, 2)*255
-            if text is not None:
-                disp_img = cv2.putText(disp_img, text, txt_pos, font,
-                                       text_scale, white, text_thickness, cv2.LINE_AA)
-            pipe.stdin.write(disp_img.astype('uint8').tostring())
-
-        if close_pipe:
-            pipe.stdin.close()
-            return None
-        else:
-            return pipe
+        assert os.path.exists(filename)
+        assert out == None
+        os.remove(filename)

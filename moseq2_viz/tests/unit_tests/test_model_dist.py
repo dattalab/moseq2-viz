@@ -13,5 +13,3 @@ class TestModeLDists(TestCase):
 
     def test_reformat_dtw_distance(self):
         print()
-
-

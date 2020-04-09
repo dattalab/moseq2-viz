@@ -190,19 +190,12 @@ def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_fil
     max_syllable = config_data['max_syllable']
     group = config_data['group']
 
-    try:
-        if config_data['layout'].lower()[:8] == 'graphviz':
-            try:
-                import pygraphviz
-            except ImportError:
-                raise ImportError('pygraphviz must be installed to use graphviz layout engines')
-    except:
-        from moseq2_extract.gui import generate_config_command
-        config_filepath = os.path.join(os.path.dirname(model_fit), 'config.yaml')
-        generate_config_command(config_filepath)
-        with open(config_filepath, 'r') as f:
-            config_data = yaml.safe_load(f)
-        f.close()
+    if config_data.get('layout').lower()[:8] == 'graphviz':
+        try:
+            import pygraphviz
+        except ImportError:
+            raise ImportError('pygraphviz must be installed to use graphviz layout engines')
+
 
     if os.path.isdir(model_fit):
         model_data = merge_models(model_fit, 'p')

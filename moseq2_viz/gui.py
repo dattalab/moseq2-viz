@@ -29,6 +29,8 @@ def get_groups_command(index_file, output_directory=None):
     for i in range(len(subjectNames)):
         print('Session Name:', sessionNames[i], '; Subject Name:', subjectNames[i], '; group:', groups[i])
 
+    return len(set(groups))
+
 def add_group_by_session(index_file, value, group, exact, lowercase, negative, output_directory=None):
 
     if output_directory is not None:
@@ -72,7 +74,7 @@ def copy_h5_metadata_to_yaml_command(input_dir, h5_metadata_path):
     copy_h5_metadata_to_yaml_wrapper(input_dir, h5_metadata_path)
 
 
-def make_crowd_movies_command(index_file, model_path, config_file, output_dir, max_syllable, max_examples, output_directory=None):
+def make_crowd_movies_command(index_file, model_path, output_dir, max_syllable, max_examples, output_directory=None):
 
     if output_directory != None:
         output_dir = os.path.join(output_directory, output_dir)

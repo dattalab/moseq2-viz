@@ -19,6 +19,7 @@ def clean_frames(frames, medfilter_space=None, gaussfilter_space=None,
 
     out = np.copy(frames)
 
+
     if tail_filter is not None:
         for i in range(frames.shape[0]):
             mask = cv2.morphologyEx(out[i], cv2.MORPH_OPEN, tail_filter) > tail_threshold
@@ -27,6 +28,9 @@ def clean_frames(frames, medfilter_space=None, gaussfilter_space=None,
     if medfilter_space is not None and np.all(np.array(medfilter_space) > 0):
         for i in range(frames.shape[0]):
             for medfilt in medfilter_space:
+                if medfilt % 2 == 0:
+                    print('Inputted medfilter must be odd. Subtracting input by 1.')
+                    medfilt -= 1
                 out[i] = cv2.medianBlur(out[i], medfilt)
 
     if gaussfilter_space is not None and np.all(np.array(gaussfilter_space) > 0):
@@ -176,15 +180,6 @@ def graph_transition_matrix(trans_mats, usages=None, groups=None,
 
         if usages is not None:
             node_size = [usages[i][k] * usage_scale for k in pos.keys()]
-            '''
-            durs = []
-            for k in pos.keys():
-                try:
-                    durs.append(floatRgb(syll_dur_df.loc[syll_dur_df['syll'] == k, 'avg_dur'], minD, maxD))
-                except:
-                    durs.append((0.0, 0.0, 0.0))
-            node_color = durs
-            '''
 
         nx.draw_networkx_nodes(graph, pos,
                                edgecolors=node_edge_color, node_color=node_color,
@@ -524,7 +519,10 @@ def usage_plot(usages, groups=None, headless=False, **kwargs):
     if headless:
         plt.switch_backend('agg')
 
-    if len(groups) == 0:
+    try:
+        if len(groups) == 0:
+            groups = None
+    except:
         groups = None
 
     if groups is None:
@@ -578,7 +576,10 @@ def duration_plot(df, groups=None, headless=False, ylim=None, **kwargs):
     if headless:
         plt.switch_backend('agg')
 
-    if len(groups) == 0:
+    try:
+        if len(groups) == 0:
+            groups = None
+    except:
         groups = None
 
     if groups is None:

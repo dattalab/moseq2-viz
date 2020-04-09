@@ -53,11 +53,7 @@ class TestCLI(TestCase):
         assert (os.path.exists(gen_dir + 'scalar_position.pdf'))
         assert (os.path.exists(gen_dir + 'scalar_summary.png'))
         assert (os.path.exists(gen_dir + 'scalar_summary.pdf'))
-        os.remove(gen_dir+'scalar_position.png')
-        os.remove(gen_dir + 'scalar_position.pdf')
-        os.remove(gen_dir + 'scalar_summary.png')
-        os.remove(gen_dir + 'scalar_summary.pdf')
-        os.removedirs(gen_dir)
+        shutil.rmtree(gen_dir)
 
     def test_plot_transition_graph(self):
     
@@ -85,8 +81,7 @@ class TestCLI(TestCase):
         assert (results.exit_code == 0)
         assert(os.path.exists(gen_dir+'transitions.png'))
         assert (os.path.exists(gen_dir + 'transitions.pdf'))
-        os.remove(gen_dir + 'transitions.png')
-        os.remove(gen_dir + 'transitions.pdf')
+        shutil.rmtree(gen_dir)
 
     def test_plot_usages(self):
         gen_dir = 'data/gen_plots/'
@@ -100,8 +95,6 @@ class TestCLI(TestCase):
                       '--count', 'usage',
                       '--max-syllable', 40,
                       '-g', 'Group1']
-
-        print(use_params)
     
         results = runner.invoke(plot_usages, use_params)
 
@@ -139,4 +132,3 @@ class TestCLI(TestCase):
         assert(os.path.exists(crowd_dir))
         assert(len(os.listdir(crowd_dir)) == max_syllable+1)
         shutil.rmtree(crowd_dir)
-

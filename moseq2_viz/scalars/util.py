@@ -1,12 +1,12 @@
-import h5py
 import os
-import pandas as pd
-import numpy as np
+import h5py
 import warnings
-from cytoolz import keyfilter, itemfilter, merge_with, curry, valmap, get
+import numpy as np
+import pandas as pd
 from tqdm.auto import tqdm
 from itertools import starmap
 from collections import defaultdict
+from cytoolz import keyfilter, itemfilter, merge_with, curry, valmap, get
 from moseq2_viz.util import (h5_to_dict, strided_app, load_timestamps, read_yaml,
                              h5_filepath_from_sorted, get_timestamps_from_h5)
 from moseq2_viz.model.util import parse_model_results, _get_transitions, relabel_by_usage
@@ -68,7 +68,7 @@ def generate_empty_feature_dict(nframes) -> dict:
     )
 
     def make_empy_arr():
-        return np.zeros((nframes,), dtype='float32')
+        return np.zeros((abs(nframes),), dtype='float32')
     return {k: make_empy_arr() for k in features}
 
 
@@ -97,7 +97,7 @@ def convert_legacy_scalars(old_features, force: bool = False, true_depth: float 
         nframes = len(old_features['centroid_x_mm'])
     elif not force:
         print('Features already converted')
-        return None
+        return old_features
     else:
         centroid = np.hstack((old_features['centroid_x'][:, None],
                               old_features['centroid_y'][:, None]))
@@ -156,12 +156,21 @@ def convert_legacy_scalars(old_features, force: bool = False, true_depth: float 
     return features
 
 
-def get_scalar_map(index, fill_nans=True, force_conversion=True):
+def get_scalar_map(index, fill_nans=True, force_conversion=False):
 
     scalar_map = {}
     score_idx = h5_to_dict(index['pca_path'], 'scores_idx')
 
-    for uuid, v in index['files'].items():
+    try:
+        iter_items = index['files'].items()
+    except:
+        iter_items = enumerate(index['files'])
+
+    for i, v in iter_items:
+        if isinstance(index['files'], list):
+            uuid = index['files'][i]['uuid']
+        elif isinstance(index['files'], dict):
+            uuid = i
 
         scalars = h5_to_dict(v['path'][0], 'scalars')
         conv_scalars = convert_legacy_scalars(scalars, force=force_conversion)
@@ -298,10 +307,16 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
     skip = []
 
     files = index['files']
-    uuids = list(files.keys())
+    try:
+        uuids = list(files.keys())
+        # use dset from first animal to generate a list of scalars
+        dset = h5_to_dict(h5_filepath_from_sorted(files[uuids[0]]), path='scalars')
+    except:
+        uuids = [f['uuid'] for f in index['files']]
+        # use dset from first animal to generate a list of scalars
+        dset = h5_to_dict(h5_filepath_from_sorted(files[0]), path='scalars')
 
-    # use dset from first animal to generate a list of scalars
-    dset = h5_to_dict(h5_filepath_from_sorted(files[uuids[0]]), path='scalars')
+
 
     # only convert if the dataset is legacy and conversion is forced
     if is_legacy(dset) and force_conversion:
@@ -344,7 +359,12 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
         # only include extractions that were modeled and fit the above criteria
         files = keyfilter(lambda x: x in labels, files)
 
-    for k, v in tqdm(files.items(), disable=disable_output):
+    try:
+        iter_items = files.items()
+    except:
+        iter_items = enumerate(files)
+
+    for k, v in tqdm(iter_items, disable=disable_output):
 
         pth = h5_filepath_from_sorted(v)
         dset = h5_to_dict(pth, 'scalars')
