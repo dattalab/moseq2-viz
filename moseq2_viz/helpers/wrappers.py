@@ -18,6 +18,18 @@ from moseq2_viz.model.util import (relabel_by_usage, parse_model_results, get_sy
                                    merge_models, get_transition_matrix, results_to_dataframe)
 
 def add_group_wrapper(index_file, config_data):
+    '''
+    Given a pre-specified key and value, the index file will be updated
+    with the respective found keys and values.
+    Parameters
+    ----------
+    index_file (str): path to index file
+    config_data (dict): dictionary containing the user specified keys and values
+
+    Returns
+    -------
+    None
+    '''
 
     index = parse_index(index_file)[0]
     h5_uuids = [f['uuid'] for f in index['files']]
@@ -59,6 +71,19 @@ def add_group_wrapper(index_file, config_data):
 
 
 def plot_scalar_summary_wrapper(index_file, output_file, gui=False):
+    '''
+    Wrapper function that plots scalar summary graphs.
+    Parameters
+    ----------
+    index_file (str): path to index file.
+    output_file (str): path to save graphs.
+    gui (bool): indicate whether GUI is plotting the graphs
+
+    Returns
+    -------
+    scalar_df (pandas DataFrame): df containing scalar data per session uuid.
+    (Only accessible through GUI API)
+    '''
 
     if not os.path.exists(os.path.dirname(output_file)):
         os.makedirs(os.path.dirname(output_file))
@@ -79,6 +104,23 @@ def plot_scalar_summary_wrapper(index_file, output_file, gui=False):
         return scalar_df
 
 def plot_syllable_usages_wrapper(index_file, model_fit, max_syllable, sort, count, group, output_file, gui=False):
+    '''
+    Wrapper function to plot syllable usages.
+    Parameters
+    ----------
+    index_file (str): path to index file.
+    model_fit (str): path to trained model file.
+    max_syllable (int): maximum number of syllables to plot.
+    sort (bool): sort syllables by usage.
+    count (str): method to compute usages 'usage' or 'frames'.
+    group (tuple): tuple of groups to separately model usages.
+    output_file (str): filename for syllable usage graph.
+    gui (bool): indicate whether GUI is plotting the graphs.
+
+    Returns
+    -------
+    plt (pyplot figure): graph to show in Jupyter Notebook.
+    '''
 
     # if the user passes model directory, merge model states by
     # minimum distance between them relative to first model in list
@@ -102,6 +144,23 @@ def plot_syllable_usages_wrapper(index_file, model_fit, max_syllable, sort, coun
         return plt
 
 def plot_syllable_durations_wrapper(index_file, model_fit, groups, count, max_syllable, output_file, ylim=None, gui=False):
+    '''
+
+    Parameters
+    ----------
+    index_file (str): path to index file
+    model_fit (str): path to trained model.
+    groups (tuple): list of groups to separately graph data for.
+    count (str): method to compute usages 'usage' or 'frames'.
+    max_syllable (int): maximum number of syllables to plot.
+    output_file (str): filename for syllable usage graph.
+    ylim (float): y-axis limit in the outputted graph.
+    gui (bool): indicate whether GUI is plotting the graphs.
+
+    Returns
+    -------
+    fig (pyplot figure): figure to graph in Jupyter Notebook.
+    '''
 
     # if the user passes model directory, merge model states by
     # minimum distance between them relative to first model in list
@@ -183,6 +242,21 @@ def plot_syllable_durations_wrapper(index_file, model_fit, groups, count, max_sy
 
 
 def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_file, gui=False):
+    '''
+    Wrapper function to plot transition graphs.
+    Parameters
+    ----------
+    index_file (str): path to index file
+    model_fit (str): path to trained model.
+    config_data (dict): dictionary containing the user specified keys and values
+    output_file (str): filename for syllable usage graph.
+    gui (bool): indicate whether GUI is plotting the graphs.
+
+
+    Returns
+    -------
+    plt (pyplot figure): graph to show in Jupyter Notebook.
+    '''
 
     if not os.path.exists(os.path.dirname(output_file)):
         os.makedirs(os.path.dirname(output_file))
@@ -280,6 +354,20 @@ def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_fil
         return plt
 
 def make_crowd_movies_wrapper(index_file, model_path, config_data, output_dir):
+    '''
+    Wrapper function to create crowd movie videos and write them to individual
+    files depicting respective syllable labels.
+    Parameters
+    ----------
+    index_file (str): path to index file
+    model_path (str): path to trained model.
+    config_data (dict): dictionary containing the user specified keys and values
+    output_dir (str): directory to store crowd movies in.
+
+    Returns
+    -------
+    None
+    '''
 
     max_syllable = config_data['max_syllable']
     max_examples = config_data['max_examples']
@@ -359,6 +447,18 @@ def make_crowd_movies_wrapper(index_file, model_path, config_data, output_dir):
                        labels, label_uuids, max_syllable, max_examples, output_dir)
 
 def copy_h5_metadata_to_yaml_wrapper(input_dir, h5_metadata_path):
+    '''
+    Copy h5 metadata dictionary contents into the respective file's yaml file.
+    Parameters
+    ----------
+    input_dir (str): path to directory that contains h5 files.
+    h5_metadata_path (str): path to data within h5 file to update yaml with.
+
+    Returns
+    -------
+    None
+    '''
+
     h5s, dicts, yamls = recursive_find_h5s(input_dir)
     to_load = [(tmp, yml, file) for tmp, yml, file in zip(
         dicts, yamls, h5s) if tmp['complete'] and not tmp['skip']]

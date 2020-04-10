@@ -16,6 +16,20 @@ from networkx.drawing.nx_agraph import graphviz_layout
 
 def clean_frames(frames, medfilter_space=None, gaussfilter_space=None,
                  tail_filter=None, tail_threshold=5):
+    '''
+
+    Parameters
+    ----------
+    frames (3D numpy array): frames to filter.
+    medfilter_space (list): list of len()==1, must be odd. Median space filter kernel size.
+    gaussfilter_space (list): list of len()==2. Gaussian space filter kernel size.
+    tail_filter (int): number of iterations to filter over tail.
+    tail_threshold (int): filtering threshold value
+
+    Returns
+    -------
+    out (3D numpy array): filtered numpy array.
+    '''
 
     out = np.copy(frames)
 
@@ -42,6 +56,16 @@ def clean_frames(frames, medfilter_space=None, gaussfilter_space=None,
 
 
 def convert_ebunch_to_graph(ebunch):
+    '''
+    Convert transition matrices to tranistion DAGs.
+    Parameters
+    ----------
+    ebunch (list of tuples): syllable transition data
+
+    Returns
+    -------
+    g (networkx.DiGraph): DAG object to graph
+    '''
 
     g = nx.DiGraph()
     g.add_weighted_edges_from(ebunch)
@@ -49,7 +73,21 @@ def convert_ebunch_to_graph(ebunch):
     return g
 
 def floatRgb(mag, cmin, cmax):
-    """ Return a tuple of floats between 0 and 1 for R, G, and B. """
+    '''
+    Return a tuple of floats between 0 and 1 for R, G, and B.
+    Parameters
+    ----------
+    mag (float): color intensity.
+    cmin (float): minimum color value
+    cmax (float): maximum color value
+
+    Returns
+    -------
+    red (float): red value
+    green (float): green value
+    blue (float): blue value
+    '''
+
     # Normalize to 0-1
     try: x = float(mag-cmin)/(cmax-cmin)
     except ZeroDivisionError: x = 0.5 # cmax == cmin
@@ -63,6 +101,24 @@ def convert_transition_matrix_to_ebunch(weights, transition_matrix,
                                         usages=None, usage_threshold=-.1,
                                         edge_threshold=-.1, indices=None,
                                         keep_orphans=False, max_syllable=None):
+    '''
+
+    Parameters
+    ----------
+    weights (np.ndarray): syllable transition edge weights
+    transition_matrix (np.ndarray): syllable transition matrix
+    usages (list): list of syllable usages
+    usage_threshold (float): threshold to include a syllable in list of orphans
+    edge_threshold (float): threshold to consider an edge part of the graph.
+    indices (list): indices of syllables to list as orphans
+    keep_orphans (bool): indicate whether to graph orphan syllables
+    max_syllable (bool): maximum numebr of syllables to include in graph
+
+    Returns
+    -------
+    ebunch (list): syllable transition data.
+    orphans (list): syllables with no edges.
+    '''
 
     ebunch = []
     orphans = []
@@ -101,6 +157,45 @@ def graph_transition_matrix(trans_mats, usages=None, groups=None,
                             difference_edge_width_scale=500, weights=None,
                             usage_scale=1e5, arrows=False, keep_orphans=False,
                             max_syllable=None, orphan_weight=0, edge_color='k', **kwargs):
+    '''
+
+    Parameters
+    ----------
+    trans_mats (np.ndarray): syllable transition matrix
+    usages (list): list of syllable usage probabilities
+    groups (list): list groups to graph transition graphs for.
+    edge_threshold (float): threshold to include edge in graph
+    anchor (int): syllable index as the base syllable
+    usage_threshold (int): threshold to include syllable usages
+    node_color (str): node colors
+    node_edge_color (str): node edge color.
+    layout (str): layout format
+    edge_width_scale (int): edge line width scaling factor
+    node_size (int): node size scaling factor
+    fig (pyplot figure): figure to plot to
+    ax (pyplot Axes): axes object
+    width_per_group (int): graph width scaling factor per group
+    height (int): UNUSED.
+    headless (bool): exclude first node.
+    font_size (int): size of node label text.
+    plot_differences (bool): plot difference between group transition matrices
+    difference_threshold (float): threshold to consider 2 graph elements different
+    difference_edge_width_scale (float): difference graph edge line width scaling factor
+    weights (list): list of edge weights
+    usage_scale (float): syllable usage scaling factor
+    arrows (bool): indicate whether to plot arrows as transitions.
+    keep_orphans (bool): plot orphans.
+    max_syllable (int): number of syllables (nodes) to plot
+    orphan_weight (int): scaling factor to plot orphan node sizes
+    edge_color (str): edge color
+    kwargs (dict): extra keyword arguments
+
+    Returns
+    -------
+    fig (pyplot figure): figure containing transition graphs.
+    ax (pyplot axis): figure axis object.
+    pos (dict): dict figure information.
+    '''
 
     if headless:
         plt.switch_backend('agg')
@@ -243,7 +338,25 @@ def graph_transition_matrix(trans_mats, usages=None, groups=None,
 
 def crowd_matrix_from_loaded_data(slices: Iterable[Tuple[int, int]], frames, scalars, nexamples=50,
                                   pad=30, dur_clip=1000, raw_size=(512, 424), crop_size=(80, 80)):
-    '''This function assumes angles have already been treated for flips, if necessary.'''
+    '''
+    This function assumes angles have already been treated for flips, if necessary.
+    UNUSED
+    Parameters
+    ----------
+    slices
+    frames
+    scalars
+    nexamples
+    pad
+    dur_clip
+    raw_size
+    crop_size
+
+    Returns
+    -------
+    None
+    '''
+
     def dur_filter(slice_):
         return (slice_[1] - slice_[0]) < dur_clip
 
@@ -271,6 +384,29 @@ def make_crowd_matrix(slices, nexamples=50, pad=30, raw_size=(512, 424), frame_p
                       crop_size=(80, 80), dur_clip=1000, offset=(50, 50), scale=1,
                       center=False, rotate=False, min_height=10, legacy_jitter_fix=False,
                       **kwargs):
+    '''
+    Creates crowd movie video numpy array.
+    Parameters
+    ----------
+    slices (numpy array): video slices of specific syllable label
+    nexamples (int): maximum number of mice to include in crowd_matrix video
+    pad (int): number of frame padding in video
+    raw_size (tuple): video dimensions.
+    frame_path (str): path to in-h5 frames variable
+    crop_size (tuple): mouse crop size
+    dur_clip (int): maximum clip duration.
+    offset (tuple): centroid offsets from cropped videos
+    scale (int): mouse size scaling factor.
+    center (bool): indicate whether mice are centered.
+    rotate (bool): rotate mice to orient them.
+    min_height (int): minimum max height from floor to use.
+    legacy_jitter_fix (bool): whether to apply jitter fix for K1 camera.
+    kwargs (dict): extra keyword arguments
+
+    Returns
+    -------
+    crowd_matrix (3D numpy array): crowd movie for a specific syllable.
+    '''
 
     if rotate and not center:
         raise NotImplementedError('Rotating without centering not supported')
@@ -423,6 +559,24 @@ def make_crowd_matrix(slices, nexamples=50, pad=30, raw_size=(512, 424), frame_p
 def position_plot(scalar_df, centroid_vars=['centroid_x_mm', 'centroid_y_mm'],
                   sort_vars=['SubjectName', 'uuid'], group_var='group', sz=50,
                   headless=False, **kwargs):
+    '''
+    Creates a position summary graph that shows all the
+    mice's centroid path throughout the respective sessions.
+    Parameters
+    ----------
+    scalar_df (pandas DataFrame): dataframe containing all scalar data
+    centroid_vars (list): list of scalar variables to track mouse position
+    sort_vars (list): list of variables to sort the dataframe by.
+    group_var (str): groups df column to graph position plots for.
+    sz (int): plot size.
+    headless (bool): UNUSED
+    kwargs (dict): extra keyword arguments
+
+    Returns
+    -------
+    fig (pyplot figure): pyplot figure object
+    ax (pyplot axis): pyplot axis object
+    '''
 
     grouped = scalar_df.groupby([group_var] + sort_vars)
 
@@ -485,6 +639,22 @@ def scalar_plot(scalar_df, sort_vars=['group', 'uuid'], group_var='group',
                               'height_ave_mm', 'width_mm', 'length_mm'],
                 headless=False,
                 **kwargs):
+    '''
+    Creates scatter plot of given scalar variables representing extraction results.
+    Parameters
+    ----------
+    scalar_df (pandas DataFrame):
+    sort_vars (list): list of variables to sort the dataframe by.
+    group_var (str): groups df column to graph position plots for.
+    show_scalars (list): list of scalar variables to plot.
+    headless (bool): exclude head of dataframe from plot.
+    kwargs (dict): extra keyword variables
+
+    Returns
+    -------
+    fig (pyplot figure): plotted scalar scatter plot
+    ax (pyplot axis): plotted scalar axis
+    '''
 
     if headless:
         plt.switch_backend('agg')
@@ -512,6 +682,20 @@ def scalar_plot(scalar_df, sort_vars=['group', 'uuid'], group_var='group',
 
 
 def usage_plot(usages, groups=None, headless=False, **kwargs):
+    '''
+    Creates a syllable usage plot for the given group
+    Parameters
+    ----------
+    usages (pandas DataFrame): DataFrame containing syllable usages and other metadata
+    groups (tuple): groups to graph usages for.
+    headless (bool): Drop first row of usages.
+    kwargs (dict): extra keyword arguments.
+
+    Returns
+    -------
+    fig (pyplot figure): figure to plot/save
+    ax (pyplot axis): axis object of figure
+    '''
 
     # use a Seaborn pointplot, groups map to hue
     # make a useful x-axis to orient the user (which side is which)
@@ -570,6 +754,22 @@ def usage_plot(usages, groups=None, headless=False, **kwargs):
         return fig, ax
 
 def duration_plot(df, groups=None, headless=False, ylim=None, **kwargs):
+    '''
+
+    Parameters
+    ----------
+    df (pandas DataFrame): dataframe containing syllable duration data
+    groups (tuple): groups to graph durations for
+    headless (bool): drop first row of dataframe
+    ylim (int): y-axis limit in figure
+    kwargs (dict): extra keyword arguments
+
+    Returns
+    -------
+    fig (pyplot figure): figure to plot/save
+    ax (pyplot axis): axis object of figure
+    '''
+
     # use a Seaborn pointplot, groups map to hue
     # make a useful x-axis to orient the user (which side is which)
 

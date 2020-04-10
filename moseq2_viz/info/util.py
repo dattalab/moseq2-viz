@@ -4,7 +4,19 @@ from moseq2_viz.model.util import get_syllable_statistics, get_transition_matrix
 
 def entropy(labels, truncate_syllable=40, smoothing=1.0,
             relabel_by='usage'):
-    """Computes entropy, base 2"""
+    '''
+    Computes syllable usage entropy, base 2.
+    Parameters
+    ----------
+    labels (np.ndarray): array of predicted syllable labels
+    truncate_syllable (int): truncate list of relabeled syllables
+    smoothing (float): a constant added to label usages before normalization
+    relabel_by (str): mode to relabel predicted labels.
+
+    Returns
+    -------
+    ent (list): list of entropy values for each syllable label.
+    '''
 
     labels, _ = relabel_by_usage(labels, count=relabel_by)
 
@@ -33,20 +45,26 @@ def entropy(labels, truncate_syllable=40, smoothing=1.0,
 
 def entropy_rate(labels, truncate_syllable=40, normalize='bigram',
                  smoothing=1.0, tm_smoothing=1.0, relabel_by='usage'):
-    """Computes entropy rate, base 2 using provided syllable labels. If
+    '''
+    Computes entropy rate, base 2 using provided syllable labels. If
     syllable labels have not been re-labeled by usage, this function will do so.
-    
-    Args:
-        labels (list or np.ndarray): a list of label arrays, where each entry in the list
+
+    Parameters
+    ----------
+    labels (list or np.ndarray): a list of label arrays, where each entry in the list
             is an array of labels for one subject.
-        truncate_syllable (int): the number of labels to keep for this calculation
-        normalize (str): the type of transition matrix normalization to perform. Options
+    truncate_syllable (int): the number of labels to keep for this calculation
+    normalize (str): the type of transition matrix normalization to perform. Options
             are: 'bigram', 'rows', or 'columns'.
-        smoothing (float): a constant added to label usages before normalization
-        tm_smoothing (float): a constant added to label transtition counts before
-            normalization 
-        relabel_by (str): how to re-order labels. Options are: 'usage' and 'frames'.
-        """
+    smoothing (float): a constant added to label usages before normalization
+    tm_smoothing (float): a constant added to label transtition counts before
+            normalization.
+    relabel_by (str): how to re-order labels. Options are: 'usage' and 'frames'.
+
+    Returns
+    -------
+    ent (list): list of entropy rates per syllable label
+    '''
 
     labels, _ = relabel_by_usage(labels, count=relabel_by)
 

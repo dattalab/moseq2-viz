@@ -33,21 +33,32 @@ def np_cache(function):
 
 
 def camel_to_snake(s):
-    """ Converts CamelCase to snake_case
-    """
+    '''
+    Converts CamelCase to snake_case
+    Parameters
+    ----------
+    s (str): string to convert to snake case
+
+    Returns
+    -------
+    (str): snake_case string
+    '''
+
     subbed = _underscorer1.sub(r'\1_\2', s)
     return _underscorer2.sub(r'\1_\2', subbed).lower()
 
 
 def check_video_parameters(index: dict) -> dict:
-    ''' Iterates through each extraction parameter file to verify extraction parameters
-    were the same. If they weren't this function raises a RuntimeError. Otherwise, it
-    will return a dictionary containing the following parameters:
-        crop_size, fps, max_height, min_height, resolution
-    Args:
-        index: a `sorted_index` dictionary of extraction parameters
-    Returns:
-        a dictionary with a subset of the used extraction parameters
+    '''
+    Iterates through each extraction parameter file to verify extraction parameters
+    were the same. If they weren't this function raises a RuntimeError.
+    Parameters
+    ----------
+    index (dict): a `sorted_index` dictionary of extraction parameters.
+
+    Returns
+    -------
+    vid_parameters (dict): a dictionary with a subset of the used extraction parameters.
     '''
 
     # define constants
@@ -93,6 +104,16 @@ def check_video_parameters(index: dict) -> dict:
 
 
 def clean_dict(dct):
+    '''
+    Casts dict values to numpy arrays
+    Parameters
+    ----------
+    dct (dict): dictionary with values to clean.
+
+    Returns
+    -------
+    (dict): dictionary with standardized value type:list
+    '''
 
     def clean_entry(e):
         if isinstance(e, dict):
@@ -109,6 +130,18 @@ def clean_dict(dct):
 
 
 def _load_h5_to_dict(file: h5py.File, path: str) -> dict:
+    '''
+    Load h5 contents to dictionary.
+    Parameters
+    ----------
+    file (opened h5py File): open h5py File object.
+    path (str): path within h5 to dict to load.
+
+    Returns
+    -------
+    ans (dict): loaded dictionary from h5
+    '''
+
     ans = {}
     if isinstance(file[path], h5py.Dataset):
         # only use the final path key to add to `ans`
@@ -124,12 +157,17 @@ def _load_h5_to_dict(file: h5py.File, path: str) -> dict:
 
 def h5_to_dict(h5file, path: str = '/') -> dict:
     '''
-    Args:
-        h5file (str or h5py.File): file path to the given h5 file or the h5 file handle
-        path: path to the base dataset within the h5 file. Default: /
-    Returns:
-        a dict with h5 file contents with the same path structure
+    Load h5 dict contents to a dict variable.
+    Parameters
+    ----------
+    h5file (str or h5py.File): file path to the given h5 file or the h5 file handle
+    path (str): path to the base dataset within the h5 file. Default: /
+
+    Returns
+    -------
+    out (dict): dictionary of all h5 contents
     '''
+
     if isinstance(h5file, str):
         with h5py.File(h5file, 'r') as f:
             out = _load_h5_to_dict(f, path)
@@ -141,6 +179,17 @@ def h5_to_dict(h5file, path: str = '/') -> dict:
 
 
 def get_timestamps_from_h5(h5file: str):
+    '''
+    Returns dict of timestamps from h5file.
+    Parameters
+    ----------
+    h5file (str): path to h5 file.
+
+    Returns
+    -------
+    (dict): dictionary containing timestamp data.
+    '''
+
     with h5py.File(h5file, 'r') as f:
         # v0.1.3 new data format
         is_new = 'timestamps' in f
@@ -158,8 +207,18 @@ def load_changepoints(cpfile):
 
 
 def load_timestamps(timestamp_file, col=0):
-    """Read timestamps from space delimited text file
-    """
+    '''
+    Read timestamps from space delimited text file.
+    Parameters
+    ----------
+    timestamp_file (str): path to timestamp file
+    col (int): column to load.
+
+    Returns
+    -------
+    ts (numpy array): loaded array of timestamps
+    '''
+
     ts = np.loadtxt(timestamp_file, delimiter=' ')
     if ts.ndim > 1:
         return ts[:, col]
@@ -170,10 +229,16 @@ def load_timestamps(timestamp_file, col=0):
 
 
 def parse_index(index_file: str) -> tuple:
-    ''' Load an index file, and use extraction UUIDs as entries in a sorted index.
+    '''
+    Load an index file, and use extraction UUIDs as entries in a sorted index.
+    Parameters
+    ----------
+    index_file
 
-    Returns:
-        a tuple containing the loaded index file, and the index with extraction UUIDs as entries
+    Returns
+    -------
+    index (dict): loaded index file contents in a dictionary
+    uuid_sorted (dict): dictionary of a list of files and pca_score path.
     '''
 
     join = os.path.join
@@ -200,24 +265,53 @@ def parse_index(index_file: str) -> tuple:
 
 
 def get_sorted_index(index_file: str) -> dict:
-    ''' Just return the sorted index from an index_file path'''
+    '''
+    Just return the sorted index from an index_file path.
+    Parameters
+    ----------
+    index_file (str): path to index file.
+
+    Returns
+    -------
+    sorted_ind (dict): dictionary of loaded sorted index file contents
+    '''
+
     _, sorted_ind = parse_index(index_file)
     return sorted_ind
 
 
 def h5_filepath_from_sorted(sorted_index_entry: dict) -> str:
-    '''Gets the h5 extraction file path from a sorted index entry
-    Returns:
-        a str containing the extraction filepath
     '''
+    Gets the h5 extraction file path from a sorted index entry
+    Parameters
+    ----------
+    sorted_index_entry (dict): get filepath from sorted index.
+
+    Returns
+    -------
+    (str): a str containing the extraction filepath
+    '''
+
     return first(sorted_index_entry['path'])
 
 
 def recursive_find_h5s(root_dir=os.getcwd(),
                        ext='.h5',
                        yaml_string='{}.yaml'):
-    """Recursively find h5 files, along with yaml files with the same basename
-    """
+    '''
+    Recursively find h5 files, along with yaml files with the same basename.
+    Parameters
+    ----------
+    root_dir (str): path to directory containing h5
+    ext (str): extension to search for.
+    yaml_string (str): yaml file format name.
+
+    Returns
+    -------
+    h5s (list): list of paths to h5 files
+    dicts (list): list of paths to metadata files
+    yamls (list): list of paths to yaml files
+    '''
 
     def has_frames(h5f):
         '''Checks if the supplied h5 file has a frames key'''
@@ -250,9 +344,22 @@ def read_yaml(yaml_path: str):
     return loaded
 
 
-# from https://stackoverflow.com/questions/40084931/taking-subarrays-from-numpy-array-with-given-stride-stepsize/40085052#40085052
 # dang this is fast!
+# from https://stackoverflow.com/questions/40084931/taking-subarrays-from-numpy-array-with-given-stride-stepsize/40085052#40085052
 def strided_app(a, L, S):  # Window len = L, Stride len/stepsize = S
+    '''
+        Taking subarrays from numpy array given stride
+        Parameters
+        ----------
+        a (np.array): array to get subarrays from.
+        L (int): window length.
+        S (int): stride size.
+
+        Returns
+        -------
+        (np.ndarray): sliced subarrays
+        '''
+
     nrows = ((a.size - L) // S) + 1
     n = a.strides[0]
     return np.lib.stride_tricks.as_strided(a, shape=(nrows, L), strides=(S * n, n))
@@ -260,18 +367,18 @@ def strided_app(a, L, S):  # Window len = L, Stride len/stepsize = S
 
 @curry
 def star(f, args):
-    '''Apply a function to a tuple of args, by expanding the tuple into
+    '''
+    Apply a function to a tuple of args, by expanding the tuple into
     each of the function's parameters. It is curried, which allows one to
     specify one argument at a time.
-    Args:
-        f: a function that takes multiple arguments
-        args: a tuple to expand into ``f``
-    Returns:
-        the output of ``f``
+    Parameters
+    ----------
+    f (function): a function that takes multiple arguments
+    args (tuple): : a tuple to expand into ``f``
 
-    >>> instance_checker = star(isinstance)
-    >>> instance_checker((1, int))
-    True
-    >>> star(max, (1, 2, 3))
-    3'''
+    Returns
+    -------
+    the output of ``f``
+    '''
+
     return f(*args)
