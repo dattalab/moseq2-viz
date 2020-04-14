@@ -21,6 +21,7 @@ def add_group_wrapper(index_file, config_data):
     '''
     Given a pre-specified key and value, the index file will be updated
     with the respective found keys and values.
+
     Parameters
     ----------
     index_file (str): path to index file
@@ -73,6 +74,7 @@ def add_group_wrapper(index_file, config_data):
 def plot_scalar_summary_wrapper(index_file, output_file, gui=False):
     '''
     Wrapper function that plots scalar summary graphs.
+
     Parameters
     ----------
     index_file (str): path to index file.
@@ -106,6 +108,7 @@ def plot_scalar_summary_wrapper(index_file, output_file, gui=False):
 def plot_syllable_usages_wrapper(index_file, model_fit, max_syllable, sort, count, group, output_file, gui=False):
     '''
     Wrapper function to plot syllable usages.
+
     Parameters
     ----------
     index_file (str): path to index file.
@@ -145,6 +148,7 @@ def plot_syllable_usages_wrapper(index_file, model_fit, max_syllable, sort, coun
 
 def plot_syllable_durations_wrapper(index_file, model_fit, groups, count, max_syllable, output_file, ylim=None, gui=False):
     '''
+    Wrapper function that plots syllable durations.
 
     Parameters
     ----------
@@ -244,6 +248,7 @@ def plot_syllable_durations_wrapper(index_file, model_fit, groups, count, max_sy
 def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_file, gui=False):
     '''
     Wrapper function to plot transition graphs.
+
     Parameters
     ----------
     index_file (str): path to index file
@@ -357,6 +362,7 @@ def make_crowd_movies_wrapper(index_file, model_path, config_data, output_dir):
     '''
     Wrapper function to create crowd movie videos and write them to individual
     files depicting respective syllable labels.
+
     Parameters
     ----------
     index_file (str): path to index file
@@ -449,6 +455,7 @@ def make_crowd_movies_wrapper(index_file, model_path, config_data, output_dir):
 def copy_h5_metadata_to_yaml_wrapper(input_dir, h5_metadata_path):
     '''
     Copy h5 metadata dictionary contents into the respective file's yaml file.
+
     Parameters
     ----------
     input_dir (str): path to directory that contains h5 files.

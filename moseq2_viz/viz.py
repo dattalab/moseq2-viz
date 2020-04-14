@@ -17,6 +17,7 @@ from networkx.drawing.nx_agraph import graphviz_layout
 def clean_frames(frames, medfilter_space=None, gaussfilter_space=None,
                  tail_filter=None, tail_threshold=5):
     '''
+    Filters frames using spatial filters such as Median or Gaussian filters.
 
     Parameters
     ----------
@@ -58,6 +59,7 @@ def clean_frames(frames, medfilter_space=None, gaussfilter_space=None,
 def convert_ebunch_to_graph(ebunch):
     '''
     Convert transition matrices to tranistion DAGs.
+
     Parameters
     ----------
     ebunch (list of tuples): syllable transition data
@@ -75,6 +77,7 @@ def convert_ebunch_to_graph(ebunch):
 def floatRgb(mag, cmin, cmax):
     '''
     Return a tuple of floats between 0 and 1 for R, G, and B.
+
     Parameters
     ----------
     mag (float): color intensity.
@@ -158,6 +161,7 @@ def graph_transition_matrix(trans_mats, usages=None, groups=None,
                             usage_scale=1e5, arrows=False, keep_orphans=False,
                             max_syllable=None, orphan_weight=0, edge_color='k', **kwargs):
     '''
+    Creates transition graph plot given a transition matrix and some metadata.
 
     Parameters
     ----------
@@ -341,6 +345,7 @@ def crowd_matrix_from_loaded_data(slices: Iterable[Tuple[int, int]], frames, sca
     '''
     This function assumes angles have already been treated for flips, if necessary.
     UNUSED
+
     Parameters
     ----------
     slices
@@ -386,6 +391,7 @@ def make_crowd_matrix(slices, nexamples=50, pad=30, raw_size=(512, 424), frame_p
                       **kwargs):
     '''
     Creates crowd movie video numpy array.
+
     Parameters
     ----------
     slices (numpy array): video slices of specific syllable label
@@ -562,6 +568,7 @@ def position_plot(scalar_df, centroid_vars=['centroid_x_mm', 'centroid_y_mm'],
     '''
     Creates a position summary graph that shows all the
     mice's centroid path throughout the respective sessions.
+
     Parameters
     ----------
     scalar_df (pandas DataFrame): dataframe containing all scalar data
@@ -641,6 +648,7 @@ def scalar_plot(scalar_df, sort_vars=['group', 'uuid'], group_var='group',
                 **kwargs):
     '''
     Creates scatter plot of given scalar variables representing extraction results.
+
     Parameters
     ----------
     scalar_df (pandas DataFrame):
@@ -684,6 +692,7 @@ def scalar_plot(scalar_df, sort_vars=['group', 'uuid'], group_var='group',
 def usage_plot(usages, groups=None, headless=False, **kwargs):
     '''
     Creates a syllable usage plot for the given group
+
     Parameters
     ----------
     usages (pandas DataFrame): DataFrame containing syllable usages and other metadata
@@ -755,6 +764,7 @@ def usage_plot(usages, groups=None, headless=False, **kwargs):
 
 def duration_plot(df, groups=None, headless=False, ylim=None, **kwargs):
     '''
+    Creates a seaborn pointplot depicting average syllable durations.
 
     Parameters
     ----------

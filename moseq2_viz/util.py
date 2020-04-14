@@ -35,6 +35,7 @@ def np_cache(function):
 def camel_to_snake(s):
     '''
     Converts CamelCase to snake_case
+
     Parameters
     ----------
     s (str): string to convert to snake case
@@ -52,6 +53,7 @@ def check_video_parameters(index: dict) -> dict:
     '''
     Iterates through each extraction parameter file to verify extraction parameters
     were the same. If they weren't this function raises a RuntimeError.
+
     Parameters
     ----------
     index (dict): a `sorted_index` dictionary of extraction parameters.
@@ -106,6 +108,7 @@ def check_video_parameters(index: dict) -> dict:
 def clean_dict(dct):
     '''
     Casts dict values to numpy arrays
+
     Parameters
     ----------
     dct (dict): dictionary with values to clean.
@@ -132,6 +135,7 @@ def clean_dict(dct):
 def _load_h5_to_dict(file: h5py.File, path: str) -> dict:
     '''
     Load h5 contents to dictionary.
+
     Parameters
     ----------
     file (opened h5py File): open h5py File object.
@@ -158,6 +162,7 @@ def _load_h5_to_dict(file: h5py.File, path: str) -> dict:
 def h5_to_dict(h5file, path: str = '/') -> dict:
     '''
     Load h5 dict contents to a dict variable.
+
     Parameters
     ----------
     h5file (str or h5py.File): file path to the given h5 file or the h5 file handle
@@ -181,6 +186,7 @@ def h5_to_dict(h5file, path: str = '/') -> dict:
 def get_timestamps_from_h5(h5file: str):
     '''
     Returns dict of timestamps from h5file.
+
     Parameters
     ----------
     h5file (str): path to h5 file.
@@ -209,6 +215,7 @@ def load_changepoints(cpfile):
 def load_timestamps(timestamp_file, col=0):
     '''
     Read timestamps from space delimited text file.
+
     Parameters
     ----------
     timestamp_file (str): path to timestamp file
@@ -231,6 +238,7 @@ def load_timestamps(timestamp_file, col=0):
 def parse_index(index_file: str) -> tuple:
     '''
     Load an index file, and use extraction UUIDs as entries in a sorted index.
+
     Parameters
     ----------
     index_file
@@ -267,6 +275,7 @@ def parse_index(index_file: str) -> tuple:
 def get_sorted_index(index_file: str) -> dict:
     '''
     Just return the sorted index from an index_file path.
+
     Parameters
     ----------
     index_file (str): path to index file.
@@ -283,6 +292,7 @@ def get_sorted_index(index_file: str) -> dict:
 def h5_filepath_from_sorted(sorted_index_entry: dict) -> str:
     '''
     Gets the h5 extraction file path from a sorted index entry
+
     Parameters
     ----------
     sorted_index_entry (dict): get filepath from sorted index.
@@ -300,6 +310,7 @@ def recursive_find_h5s(root_dir=os.getcwd(),
                        yaml_string='{}.yaml'):
     '''
     Recursively find h5 files, along with yaml files with the same basename.
+
     Parameters
     ----------
     root_dir (str): path to directory containing h5
@@ -348,17 +359,18 @@ def read_yaml(yaml_path: str):
 # from https://stackoverflow.com/questions/40084931/taking-subarrays-from-numpy-array-with-given-stride-stepsize/40085052#40085052
 def strided_app(a, L, S):  # Window len = L, Stride len/stepsize = S
     '''
-        Taking subarrays from numpy array given stride
-        Parameters
-        ----------
-        a (np.array): array to get subarrays from.
-        L (int): window length.
-        S (int): stride size.
+    Taking subarrays from numpy array given stride
 
-        Returns
-        -------
-        (np.ndarray): sliced subarrays
-        '''
+    Parameters
+    ----------
+    a (np.array): array to get subarrays from.
+    L (int): window length.
+    S (int): stride size.
+
+    Returns
+    -------
+    (np.ndarray): sliced subarrays
+    '''
 
     nrows = ((a.size - L) // S) + 1
     n = a.strides[0]
@@ -371,6 +383,7 @@ def star(f, args):
     Apply a function to a tuple of args, by expanding the tuple into
     each of the function's parameters. It is curried, which allows one to
     specify one argument at a time.
+
     Parameters
     ----------
     f (function): a function that takes multiple arguments

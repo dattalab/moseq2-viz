@@ -6,6 +6,7 @@ from moseq2_viz.helpers.wrappers import add_group_wrapper, plot_syllable_usages_
 def get_groups_command(index_file, output_directory=None):
     '''
     Jupyter Notebook to print index file current metadata groupings.
+
     Parameters
     ----------
     index_file (str): path to index file
@@ -44,6 +45,7 @@ def get_groups_command(index_file, output_directory=None):
 def add_group_by_session(index_file, value, group, exact, lowercase, negative, output_directory=None):
     '''
     Updates index file SessionName group names with user defined group names.
+
     Parameters
     ----------
     index_file (str): path to index file
@@ -79,6 +81,7 @@ def add_group_by_session(index_file, value, group, exact, lowercase, negative, o
 def add_group_by_subject(index_file, value, group, exact, lowercase, negative, output_directory=None):
     '''
     Updates index file SubjectName group names with user defined group names.
+
     Parameters
     ----------
     index_file (str): path to index file
@@ -114,6 +117,7 @@ def add_group_by_subject(index_file, value, group, exact, lowercase, negative, o
 def copy_h5_metadata_to_yaml_command(input_dir, h5_metadata_path):
     '''
     Reads h5 metadata from a specified metadata h5 path.
+
     Parameters
     ----------
     input_dir (str): path to directory containing h5 file
@@ -131,6 +135,7 @@ def make_crowd_movies_command(index_file, model_path, output_dir, max_syllable, 
     '''
     Runs CLI function to write crowd movies, due to multiprocessing
     compatibilty issues with Jupyter notebook's scheduler.
+
     Parameters
     ----------
     index_file (str): path to index file.
@@ -157,6 +162,7 @@ def make_crowd_movies_command(index_file, model_path, output_dir, max_syllable, 
 def plot_usages_command(index_file, model_fit, sort, count, max_syllable, group, output_file):
     '''
     Graph syllable usages from fit model data.
+
     Parameters
     ----------
     index_file (str): path to index file
@@ -179,6 +185,7 @@ def plot_usages_command(index_file, model_fit, sort, count, max_syllable, group,
 def plot_scalar_summary_command(index_file, output_file):
     '''
     Creates a scalar summary graph and a position summary graph
+
     Parameters
     ----------
     index_file (str): path to index file
@@ -194,6 +201,7 @@ def plot_scalar_summary_command(index_file, output_file):
 
 def plot_transition_graph_command(index_file, model_fit, config_file, max_syllable, group, output_file):
     '''
+    Creates transition graphs given groups to process.
 
     Parameters
     ----------
@@ -223,7 +231,8 @@ def plot_transition_graph_command(index_file, model_fit, config_file, max_syllab
 
 def plot_syllable_durations_command(model_fit, index_file, groups, count, max_syllable, output_file, ylim=None):
     '''
-    Plot average syllable durations
+    Plot average syllable durations.
+
     Parameters
     ----------
     model_fit (str): path to fit model.

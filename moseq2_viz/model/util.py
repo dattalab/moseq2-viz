@@ -80,6 +80,7 @@ def _get_transitions(label_sequence):
     '''
     Computes labels switch to another label. Throws out the first state (usually
     labeled as -5).
+
     Parameters
     ----------
     label_sequence (tuple): a tuple of syllable transitions and their indices
@@ -101,6 +102,7 @@ def _get_transitions(label_sequence):
 def _whiten_all(pca_scores: Dict[str, np.ndarray], center=True):
     '''
     Whitens all PC scores at once.
+
     Parameters
     ----------
     pca_scores (dict): dictionary of uuid to PC score key-value pairs
@@ -134,6 +136,7 @@ def get_transition_matrix(labels, max_syllable=100, normalize='bigram',
                           smoothing=0.0, combine=False, disable_output=False) -> list:
     '''
     Compute the transition matrix from a set of model labels.
+
     Parameters
     ----------
     labels (list of np.array of ints): labels loaded from a model fit
@@ -200,6 +203,7 @@ def get_transition_matrix(labels, max_syllable=100, normalize='bigram',
 def get_mouse_syllable_slices(syllable: int, labels: np.ndarray) -> Iterator[slice]:
     '''
     Return a generator containing slices of `syllable` indices for a mouse.
+
     Parameters
     ----------
     syllable (list): list of syllables to get slices from.
@@ -227,6 +231,7 @@ def syllable_slices_from_dict(syllable: int, labels: Dict[str, np.ndarray], inde
                               filter_nans: bool = True) -> Dict[str, list]:
     '''
     Reads dictionary of syllable labels, and returning a dict of syllable slices.
+
     Parameters
     ----------
     syllable (list): list of syllables to get slices from.
@@ -262,6 +267,7 @@ def syllable_slices_from_dict(syllable: int, labels: Dict[str, np.ndarray], inde
 def get_syllable_slices(syllable, labels, label_uuids, index, trim_nans: bool = True) -> list:
     '''
     Get the indices that correspond to a specific syllable for each animal in a modeling run.
+
     Parameters
     ----------
     syllable (list): list of syllables to get slices from.
@@ -337,6 +343,7 @@ def find_label_transitions(label_arr: Union[dict, np.ndarray]) -> np.ndarray:
     '''
     Finds indices where a label transitions into another label. This
     function is cached to increase performance because it is called frequently.
+
     Parameters
     ----------
     label_arr (dict or np.ndarray): list or dict of predicted syllable labels.
@@ -359,6 +366,7 @@ def compress_label_sequence(label_arr: Union[dict, np.ndarray]) -> np.ndarray:
     '''
     Removes repeating values from a label sequence. It assumes the first
     label is '-5', which is unused for behavioral analysis, and removes it.
+
     Parameters
     ----------
     label_arr (dict or np.ndarray): list or dict of predicted syllable labels.
@@ -380,6 +388,7 @@ def compress_label_sequence(label_arr: Union[dict, np.ndarray]) -> np.ndarray:
 def calculate_label_durations(label_arr: Union[dict, np.ndarray]) -> Union[dict, np.ndarray]:
     '''
     Calculates syllable label durations.
+
     Parameters
     ----------
     label_arr (dict or np.ndarray): list or dict of predicted syllable labels.
@@ -400,6 +409,7 @@ def calculate_label_durations(label_arr: Union[dict, np.ndarray]) -> Union[dict,
 def calculate_syllable_usage(labels: Union[dict, pd.DataFrame]):
     '''
     Calculates a dictionary of uuid to syllable usage key-values pairs.
+
     Parameters
     ----------
     label_arr (dict or pd.DataFrame): list or DataFrame of predicted syllable labels.
@@ -420,6 +430,7 @@ def calculate_syllable_usage(labels: Union[dict, pd.DataFrame]):
 def get_syllable_statistics(data, fill_value=-5, max_syllable=100, count='usage'):
     '''
     Compute the syllable statistics from a set of model labels
+
     Parameters
     ----------
     data (list of np.array of ints): labels loaded from a model fit.
@@ -494,6 +505,7 @@ def get_syllable_statistics(data, fill_value=-5, max_syllable=100, count='usage'
 def labels_to_changepoints(labels, fs=30.):
     '''
     Compute the transition matrix from a set of model labels.
+
     Parameters
     ----------
     labels (list of np.array of ints): labels loaded from a model fit.
@@ -515,6 +527,7 @@ def labels_to_changepoints(labels, fs=30.):
 def parse_batch_modeling(filename):
     '''
     Reads model parameter scan training results into a single dictionary.
+
     Parameters
     ----------
     filename (str): path to h5 manifest file containing all the model results.
@@ -551,6 +564,7 @@ def parse_model_results(model_obj, restart_idx=0, resample_idx=-1,
                         count: str = 'usage') -> dict:
 
     '''
+    Reads model file and returns dictionary containing modeled results and some metadata.
 
     Parameters
     ----------
@@ -611,6 +625,7 @@ def parse_model_results(model_obj, restart_idx=0, resample_idx=-1,
 def relabel_by_usage(labels, fill_value=-5, count='usage'):
     '''
     Resort model labels by their usages.
+
     Parameters
     ----------
     labels (list of np.array of ints): labels loaded from a model fit
@@ -641,6 +656,7 @@ def relabel_by_usage(labels, fill_value=-5, count='usage'):
 def results_to_dataframe(model_dict, index_dict, sort=False, count='usage', normalize=True, max_syllable=40,
                          include_meta=['SessionName', 'SubjectName', 'StartTime']):
     '''
+    Converts inputted model dictionary to DataFrame with user specified metadata columns.
 
     Parameters
     ----------
@@ -716,6 +732,7 @@ def simulate_ar_trajectory(ar_mat, init_points=None, sim_points=100):
     '''
     Simulate auto-regressive trajectory matrices from
     optionally randomly projected initalized points.
+
     Parameters
     ----------
     ar_mat (np.ndarray): numpy array representing the autoregressive matrix of each model state.
@@ -765,6 +782,7 @@ def simulate_ar_trajectory(ar_mat, init_points=None, sim_points=100):
 def sort_batch_results(data, averaging=True, filenames=None, **kwargs):
     '''
     Sort modeling results from batch/parameter scan.
+
     Parameters
     ----------
     data (np.ndarray): model AR-matrices.
@@ -852,7 +870,8 @@ def sort_batch_results(data, averaging=True, filenames=None, **kwargs):
 
 
 def whiten_pcs(pca_scores, method='all', center=True):
-    """Whiten PC scores using Cholesky whitening
+    """
+    Whiten PC scores using Cholesky whitening
 
     Args:
         pca_scores (dict): dictionary where values are pca_scores (2d np arrays)
@@ -887,6 +906,7 @@ def normalize_pcs(pca_scores: dict, method: str = 'z') -> dict:
     '''
     Normalize PC scores. Options are: demean, zscore, ind-zscore.
     demean: subtract the mean from each score.
+
     Parameters
     ----------
     pca_scores (dict): dict of uuid to PC-scores key-value pairs.
@@ -927,6 +947,7 @@ def normalize_pcs(pca_scores: dict, method: str = 'z') -> dict:
 def _gen_to_arr(generator: Iterator[Any]) -> np.ndarray:
     '''
     Cast a generator object into a numpy array.
+
     Parameters
     ----------
     generator (Iterator[Any]): a generator object.
@@ -943,11 +964,11 @@ def retrieve_pcs_from_slices(slices, pca_scores, max_dur=60, min_dur=3,
                              max_samples=100, npcs=10, subsampling=None,
                              remove_offset=False, **kwargs):
     '''
-
+    Subsample Principal components from syllable slices
     Parameters
     ----------
-    slices (np.ndarray):
-    pca_scores (np.ndarray):
+    slices (np.ndarray): syllable slice or subarray to compute PCs for
+    pca_scores (np.ndarray): PC scores for respective session.
     max_dur (int): maximum slice length.
     min_dur (int): minimum slice length.
     max_samples (int): maximum number of samples to slices to retrieve.

@@ -6,6 +6,7 @@ def entropy(labels, truncate_syllable=40, smoothing=1.0,
             relabel_by='usage'):
     '''
     Computes syllable usage entropy, base 2.
+
     Parameters
     ----------
     labels (np.ndarray): array of predicted syllable labels

@@ -14,6 +14,7 @@ def write_crowd_movies(sorted_index, config_data, filename_format, vid_parameter
                        labels, label_uuids, max_syllable, max_examples, output_dir):
     '''
     Creates syllable slices for crowd movies and writes them to files.
+
     Parameters
     ----------
     sorted_index (dict): dictionary of sorted index data.
@@ -72,6 +73,7 @@ def write_frames_preview(filename, frames=np.empty((0,)), threads=6,
     '''
     Writes out a false-colored mp4 video.
     [Duplicate from moseq2-extract]
+
     Parameters
     ----------
     filename (str):
