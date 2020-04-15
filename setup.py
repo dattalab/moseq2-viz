@@ -4,7 +4,7 @@ setup(
     name='moseq2-viz',
     author='Jeff Markowitz',
     description='To boldly go where no mouse has gone before',
-    version='0.3.0',
+    version='0.3.1',
     packages=find_packages(),
     platforms=['mac', 'unix'],
     install_requires=[],

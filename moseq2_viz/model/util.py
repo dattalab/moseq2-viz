@@ -893,11 +893,11 @@ def whiten_pcs(pca_scores, method='all', center=True):
     """
 
     if method[0].lower() == 'a':
-        whitened_scores = _whiten_all(pca_scores)
+        whitened_scores = _whiten_all(pca_scores, center=center)
     else:
         whitened_scores = {}
         for k, v in pca_scores.items():
-            whitened_scores[k] = _whiten_all({k: v})[k]
+            whitened_scores[k] = _whiten_all({k: v}, center=center)[k]
 
     return whitened_scores
 
