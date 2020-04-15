@@ -18,15 +18,15 @@ Submodules
 ----------
 
 CLI Module
-----------------------------------
+==========
 
-.. automodule:: moseq2_viz.cli
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. click:: moseq2_viz.cli:cli
+    :prog: cli
+    :show-nested:
+
 
 GUI Module
-----------------------------------
+==========
 
 .. automodule:: moseq2_viz.gui
    :members:
@@ -34,7 +34,7 @@ GUI Module
    :show-inheritance:
 
 General Utilities Module
------------------------------------
+========================
 
 .. automodule:: moseq2_viz.util
    :members:
@@ -42,7 +42,7 @@ General Utilities Module
    :show-inheritance:
 
 Visualization Module
-----------------------------------
+====================
 
 .. automodule:: moseq2_viz.viz
    :members:
