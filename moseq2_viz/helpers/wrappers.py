@@ -267,7 +267,6 @@ def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_fil
         os.makedirs(os.path.dirname(output_file))
 
     max_syllable = config_data['max_syllable']
-    group = config_data['group']
 
     if config_data.get('layout').lower()[:8] == 'graphviz':
         try:
@@ -275,6 +274,8 @@ def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_fil
         except ImportError:
             raise ImportError('pygraphviz must be installed to use graphviz layout engines')
 
+    if config_data.get('group') != None:
+        group = config_data['group']
 
     if os.path.isdir(model_fit):
         model_data = merge_models(model_fit, 'p')

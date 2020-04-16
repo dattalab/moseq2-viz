@@ -1,5 +1,6 @@
 import os
 import ruamel.yaml as yaml
+from .cli import plot_usages, plot_scalar_summary, plot_transition_graph, plot_syllable_durations
 from moseq2_viz.helpers.wrappers import add_group_wrapper, plot_syllable_usages_wrapper, plot_scalar_summary_wrapper, \
         plot_syllable_durations_wrapper, plot_transition_graph_wrapper, copy_h5_metadata_to_yaml_wrapper
 
@@ -178,6 +179,7 @@ def plot_usages_command(index_file, model_fit, sort, count, max_syllable, group,
     fig (pyplot figure): figure to graph in Jupyter Notebook.
     '''
 
+
     fig = plot_syllable_usages_wrapper(index_file, model_fit, max_syllable, sort, count, group, output_file, gui=True)
     print('Usage plot successfully generated')
     return fig
@@ -220,6 +222,14 @@ def plot_transition_graph_command(index_file, model_fit, config_file, max_syllab
     with open(config_file, 'r') as f:
         config_data = yaml.safe_load(f)
     f.close()
+
+    # Get default CLI params
+    objs = plot_transition_graph.params
+
+    params = {tmp.name: tmp.default for tmp in objs if not tmp.required}
+    for k, v in params.items():
+        if k not in config_data.keys():
+            config_data[k] = v
 
     config_data['max_syllable'] = max_syllable
     config_data['group'] = group
