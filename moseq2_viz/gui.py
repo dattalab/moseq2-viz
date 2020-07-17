@@ -159,7 +159,7 @@ def plot_usages_command(model_fit, index_file, output_file, max_syllable=40, cou
 
 
     fig = plot_syllable_usages_wrapper(model_fit, index_file, output_file, max_syllable=max_syllable, sort=sort,
-                                        count=count, group=group, gui=True, fmt=fmt, ordering=ordering,
+                                        count=count, group=group, fmt=fmt, ordering=ordering,
                                         ctrl_group=ctrl_group, exp_group=exp_group, colors=colors, figsize=figsize)
 
     print('Usage plot successfully generated')
@@ -181,7 +181,7 @@ def plot_scalar_summary_command(index_file, output_file, colors=None, groupby='g
     scalar_df (pandas DataFrame): DataFrame containing all of scalar values for debugging.
     '''
 
-    scalar_df = plot_scalar_summary_wrapper(index_file, output_file, groupby=groupby, colors=colors, gui=True)
+    scalar_df = plot_scalar_summary_wrapper(index_file, output_file, groupby=groupby, colors=colors)
     return scalar_df
 
 def plot_transition_graph_command(index_file, model_fit, config_file, max_syllable, group, output_file):
@@ -217,7 +217,7 @@ def plot_transition_graph_command(index_file, model_fit, config_file, max_syllab
     config_data['max_syllable'] = max_syllable
     config_data['group'] = group
 
-    fig = plot_transition_graph_wrapper(index_file, model_fit, config_data, output_file, gui=True)
+    fig = plot_transition_graph_wrapper(index_file, model_fit, config_data, output_file)
 
     print('Transition graph(s) successfully generated')
     return fig
@@ -252,7 +252,7 @@ def plot_syllable_durations_command(model_fit, index_file, output_file, max_syll
     '''
 
     fig = plot_syllable_durations_wrapper(model_fit, index_file, output_file, count=count, max_syllable=max_syllable, group=group, fmt=fmt,
-                                  ordering=ordering, ctrl_group=ctrl_group, exp_group=exp_group, colors=colors, figsize=figsize, gui=True)
+                                  ordering=ordering, ctrl_group=ctrl_group, exp_group=exp_group, colors=colors, figsize=figsize)
 
     return fig
 
@@ -284,7 +284,7 @@ def plot_mean_syllable_speeds_command(model_fit, index_file, output_file, max_sy
     '''
 
     fig = plot_syllable_speeds_wrapper(model_fit, index_file, output_file, max_syllable=max_syllable, group=group, fmt=fmt,
-                   ordering=ordering, ctrl_group=ctrl_group, exp_group=exp_group, colors=colors, figsize=figsize, gui=True)
+                   ordering=ordering, ctrl_group=ctrl_group, exp_group=exp_group, colors=colors, figsize=figsize)
 
     return fig
 
@@ -301,7 +301,7 @@ def plot_mean_group_position_heatmaps_command(index_file, output_file):
     fig (pyplot figure): figure to graph in Jupyter Notebook.
     '''
 
-    fig = plot_mean_group_position_pdf_wrapper(index_file, output_file, gui=True)
+    fig = plot_mean_group_position_pdf_wrapper(index_file, output_file)
 
     return fig
 
@@ -319,6 +319,6 @@ def plot_verbose_position_heatmaps(index_file, output_file):
     fig (pyplot figure): figure to graph in Jupyter Notebook.
     '''
 
-    fig = plot_verbose_pdfs_wrapper(index_file, output_file, gui=True)
+    fig = plot_verbose_pdfs_wrapper(index_file, output_file)
 
     return fig

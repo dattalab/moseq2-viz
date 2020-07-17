@@ -22,8 +22,6 @@ def star_valmap(func, d):
     keys = list(d.keys())
     return dict(zip(keys, starmap(func, d.values())))
 
-
-
 def convert_pxs_to_mm(coords, resolution=(512, 424), field_of_view=(70.6, 60), true_depth=673.1):
     '''
     Converts x, y coordinates in pixel space to mm

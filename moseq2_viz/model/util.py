@@ -485,9 +485,7 @@ def get_syllable_statistics(data, fill_value=-5, max_syllable=100, count='usage'
                 else:
                     usages[s] = usages[s] + d
                 durations[s].append(d)
-
-    else:#elif type(data) is np.ndarray and data.dtype == 'int16':
-
+    else:
         seq_array, locs = _get_transitions(data)
         to_rem = np.where(seq_array > max_syllable)[0]
 
@@ -502,10 +500,8 @@ def get_syllable_statistics(data, fill_value=-5, max_syllable=100, count='usage'
                 usages[s] = usages[s] + d
             durations[s].append(d)
 
-
     usages = OrderedDict(sorted(usages.items()))
     durations = OrderedDict(sorted(durations.items()))
-
 
     return usages, durations
 
@@ -550,18 +546,12 @@ def parse_batch_modeling(filename):
     with h5py.File(filename, 'r') as f:
         scans = h5_to_dict(f, 'scans')
         params = h5_to_dict(f, 'metadata/parameters')
-        results_dict = {
-            'heldouts': np.squeeze(f['metadata/heldout_ll'][()]),
-            'parameters': params,
-            'scans': scans,
-            'filenames': [join(dirname(filename), basename(fname.decode('utf-8')))
-                          for fname in f['filenames']],
-            'labels': np.squeeze(f['labels'][()]),
-            'loglikes': np.squeeze(f['metadata/loglikes'][()]),
-            'label_uuids': [str(_, 'utf-8') for _ in f['/metadata/train_list']]
-        }
-
-        results_dict['scan_parameters'] = dict((x, get(x, params, None)) for x in scans)
+        results_dict = {'heldouts': np.squeeze(f['metadata/heldout_ll'][()]), 'parameters': params, 'scans': scans,
+                        'filenames': [join(dirname(filename), basename(fname.decode('utf-8')))
+                                      for fname in f['filenames']], 'labels': np.squeeze(f['labels'][()]),
+                        'loglikes': np.squeeze(f['metadata/loglikes'][()]),
+                        'label_uuids': [str(_, 'utf-8') for _ in f['/metadata/train_list']],
+                        'scan_parameters': dict((x, get(x, params, None)) for x in scans)}
 
     return results_dict
 
@@ -807,8 +797,6 @@ def simulate_ar_trajectory(ar_mat, init_points=None, sim_points=100):
         affine_term = np.zeros((ar_mat.shape[0], ), dtype='float32')
 
     nlags = ar_mat.shape[1] // npcs
-
-    # print('Found {} pcs and {} lags in AR matrix'.format(npcs, nlags))
 
     if init_points is None:
         init_points = np.zeros((nlags, npcs), dtype='float32')
@@ -1069,36 +1057,3 @@ def retrieve_pcs_from_slices(slices, pca_scores, max_dur=60, min_dur=3,
             syllable_matrix[:] = np.nan
 
     return syllable_matrix
-
-
-'''
-def relabel_by_usage(labels: Union[list, np.ndarray], fill_value: int = -5,
-                     count: str = 'usage') -> Union[list, np.ndarray]:
-    Re-sort model labels by their usages
-
-    Args:
-        labels: labels loaded from a model fit
-        fill_value: value prepended to modeling results to account for nlags
-        count: how to count syllable usage - either by emission number (usage) or number of frames (frames)
-
-    Returns:
-        labels: labels resorted by usage
-
-    Examples:
-        Load in model results and sort labels by usages::
-
-            from moseq2_viz.model.util import parse_model_results, relabel_by_usage
-            model_results = parse_model_results('mymodel.p')
-            sorted_labels = relabel_by_usage(model_results['labels'], count='usage')
-
-
-    if isinstance(labels, (list, np.ndarray)):
-        return _relabel_list_by_usage(labels, fill_value=fill_value, count=count)
-    elif isinstance(labels, dict):
-        # rest assured, in python 3 dicts are ordered by default
-        uuids = list(labels.keys())
-        sorted_labels, sorting = _relabel_list_by_usage(list(labels.values()), fill_value=fill_value, count=count)
-        return dict(zip(uuids, sorted_labels)), sorting
-    else:
-        raise ValueError(f'processing of datatype {type(labels)} not implemented or recognized')
-'''

@@ -1,18 +1,15 @@
-import numpy as np
-import tqdm
 import warnings
-from dtaidistance import dtw_ndim
+import numpy as np
 from copy import deepcopy
+from tqdm.auto import tqdm
+from dtaidistance import dtw_ndim
+from cytoolz import keyfilter, curry
+from moseq2_viz.util import strided_app, h5_to_dict
+from scipy.spatial.distance import squareform, pdist
 from moseq2_viz.model.util import (whiten_pcs, parse_model_results,
                                    simulate_ar_trajectory, _get_transitions,
-                                   get_syllable_slices, retrieve_pcs_from_slices,
-                                   normalize_pcs)
-from moseq2_viz.util import strided_app, h5_to_dict
+                                   get_syllable_slices, retrieve_pcs_from_slices, normalize_pcs)
 from moseq2_viz.scalars.util import get_scalar_map, get_scalar_triggered_average, process_scalars
-from scipy.spatial.distance import squareform, pdist
-from functools import partial
-from tqdm import tqdm_notebook
-from cytoolz import keyfilter, curry
 
 
 def get_behavioral_distance(index, model_file, whiten='all',
@@ -136,7 +133,7 @@ def get_behavioral_distance(index, model_file, whiten='all',
             parallel = use_options.pop('parallel')
 
             pc_slices = []
-            for syllable in tqdm_notebook(range(max_syllable)):
+            for syllable in tqdm(range(max_syllable)):
                 pc_slice = retrieve_pcs_from_slices(slice_fun(syllable),
                                                     pca_scores,
                                                     **use_options)
@@ -182,7 +179,7 @@ def get_behavioral_distance(index, model_file, whiten='all',
                 trim_nans=False)
 
             pc_slices = []
-            for syllable in tqdm_notebook(range(max_syllable)):
+            for syllable in tqdm(range(max_syllable)):
                 pc_slice = retrieve_pcs_from_slices(slice_fun(syllable),
                                                     pca_scores,
                                                     **use_options)

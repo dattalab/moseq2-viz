@@ -72,7 +72,7 @@ def add_group_wrapper(index_file, config_data):
     print('Group(s) added successfully.')
 
 
-def plot_scalar_summary_wrapper(index_file, output_file, groupby='group', colors=None, gui=False):
+def plot_scalar_summary_wrapper(index_file, output_file, groupby='group', colors=None):
     '''
     Wrapper function that plots scalar summary graphs.
 
@@ -82,7 +82,6 @@ def plot_scalar_summary_wrapper(index_file, output_file, groupby='group', colors
     output_file (str): path to save graphs.
     groupby (str): scalar_df column to group sessions by when graphing scalar and position summaries
     colors (list): list of colors to serve as the sns palette in the scalar summary
-    gui (bool): indicate whether GUI is plotting the graphs
 
     Returns
     -------
@@ -105,11 +104,10 @@ def plot_scalar_summary_wrapper(index_file, output_file, groupby='group', colors
     plt_position.savefig('{}_position.png'.format(output_file))
     plt_position.savefig('{}_position.pdf'.format(output_file))
 
-    if gui:
-        return scalar_df
+    return scalar_df
 
 def plot_syllable_usages_wrapper(model_fit, index_file, output_file, sort=True, count='usage', group=None, max_syllable=40,
-                                 fmt='o-', ordering=None, ctrl_group=None, exp_group=None, colors=None, figsize=(10, 5), gui=False):
+                                 fmt='o-', ordering=None, ctrl_group=None, exp_group=None, colors=None, figsize=(10, 5)):
     '''
     Wrapper function to plot syllable usages.
 
@@ -130,7 +128,6 @@ def plot_syllable_usages_wrapper(model_fit, index_file, output_file, sort=True, 
     exp_group (str): Experimental group to directly compare with control group.
     colors (list): list of colors to serve as the sns palette in the scalar summary. If None, default colors are used.
     figsize (tuple): tuple value of length = 2, representing (columns x rows) of the plotted figure dimensions
-    gui (bool): indicate whether GUI is plotting the graphs.
 
     Returns
     -------
@@ -159,11 +156,10 @@ def plot_syllable_usages_wrapper(model_fit, index_file, output_file, sort=True, 
     plt.savefig('{}.png'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
     plt.savefig('{}.pdf'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
-    if gui:
-        return plt
+    return plt
 
 def plot_syllable_durations_wrapper(model_fit, index_file, output_file, count='usage', max_syllable=40, sort=True, group=None,
-                                    ordering=None, ctrl_group=None, exp_group=None, colors=None, fmt='o-', figsize=(10, 5), gui=False):
+                                    ordering=None, ctrl_group=None, exp_group=None, colors=None, fmt='o-', figsize=(10, 5)):
     '''
     Wrapper function that plots syllable durations.
 
@@ -184,7 +180,6 @@ def plot_syllable_durations_wrapper(model_fit, index_file, output_file, count='u
     colors (list): list of colors to serve as the sns palette in the scalar summary. If None, default colors are used.
     fmt (str): scatter plot format. "o-" for line plot with vertices at corresponding usages. "o" for just points.
     figsize (tuple): tuple value of length = 2, representing (columns x rows) of the plotted figure dimensions
-    gui (bool): indicate whether GUI is plotting the graphs.
 
     Returns
     -------
@@ -213,11 +208,10 @@ def plot_syllable_durations_wrapper(model_fit, index_file, output_file, count='u
     plt.savefig('{}.png'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
     plt.savefig('{}.pdf'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
-    if gui:
-        return plt
+    return plt
 
 def plot_syllable_speeds_wrapper(model_fit, index_file, output_file, group=None, ordering=None, colors=None,
-                                 ctrl_group=None, exp_group=None, max_syllable=40, fmt='o-', figsize=(10, 5), gui=False):
+                                 ctrl_group=None, exp_group=None, max_syllable=40, fmt='o-', figsize=(10, 5)):
     '''
     Wrapper function that computes the average syllable speed by averaging the speed at all occurrences
     of each syllable in [0, max_syllable) in each session. Then plots the results in the desired ordering.
@@ -237,7 +231,6 @@ def plot_syllable_speeds_wrapper(model_fit, index_file, output_file, group=None,
     max_syllable (int): maximum number of syllables to plot.
     fmt (str): scatter plot format. "o-" for line plot with vertices at corresponding usages. "o" for just points.
     figsize (tuple): tuple value of length = 2, representing (columns x rows) of the plotted figure dimensions
-    gui (bool): indicate whether GUI is plotting the graphs.
 
     Returns
     -------
@@ -269,10 +262,9 @@ def plot_syllable_speeds_wrapper(model_fit, index_file, output_file, group=None,
     fig.savefig('{}.png'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
     fig.savefig('{}.pdf'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
-    if gui:
-        return fig
+    return fig
 
-def plot_mean_group_position_pdf_wrapper(index_file, output_file, gui=False):
+def plot_mean_group_position_pdf_wrapper(index_file, output_file):
     '''
     Wrapper function that computes the PDF of the rodent's position throughout the respective sessions,
     and averages these values with respect to their groups to graph a mean position heatmap for each group.
@@ -301,10 +293,9 @@ def plot_mean_group_position_pdf_wrapper(index_file, output_file, gui=False):
     fig.savefig('{}.png'.format(output_file))
     fig.savefig('{}.pdf'.format(output_file))
 
-    if gui:
-        return fig
+    return fig
 
-def plot_verbose_pdfs_wrapper(index_file, output_file, gui=False):
+def plot_verbose_pdfs_wrapper(index_file, output_file):
     '''
     Wrapper function that computes the PDF for the mouse position for each session in the index file.
     Will plot each session's heatmap with a "SessionName: Group"-like title.
@@ -313,7 +304,6 @@ def plot_verbose_pdfs_wrapper(index_file, output_file, gui=False):
     ----------
     index_file (str): path to index file.
     output_file (str): filename for the verbose heatmap graph.
-    gui (bool): indicate whether GUI is plotting the graphs.
 
     Returns
     -------
@@ -333,10 +323,9 @@ def plot_verbose_pdfs_wrapper(index_file, output_file, gui=False):
     fig.savefig('{}.png'.format(output_file))
     fig.savefig('{}.pdf'.format(output_file))
 
-    if gui:
-        return fig
+    return fig
 
-def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_file, gui=False):
+def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_file):
     '''
     Wrapper function to plot transition graphs.
 
@@ -346,7 +335,6 @@ def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_fil
     model_fit (str): path to trained model.
     config_data (dict): dictionary containing the user specified keys and values
     output_file (str): filename for syllable usage graph.
-    gui (bool): indicate whether GUI is plotting the graphs.
 
     Returns
     -------
@@ -450,8 +438,7 @@ def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_fil
                                             usage_scale=config_data['node_scaling'], headless=True)
         plt.savefig('{}.png'.format(output_file))
         plt.savefig('{}.pdf'.format(output_file))
-    if gui:
-        return plt
+    return plt
 
 def make_crowd_movies_wrapper(index_file, model_path, config_data, output_dir):
     '''
