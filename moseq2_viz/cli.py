@@ -1,8 +1,9 @@
 import os
 import click
 from moseq2_viz.helpers.wrappers import add_group_wrapper, plot_syllable_usages_wrapper, plot_scalar_summary_wrapper, \
-        plot_syllable_durations_wrapper, plot_transition_graph_wrapper, copy_h5_metadata_to_yaml_wrapper, \
-        make_crowd_movies_wrapper, plot_syllable_speeds_wrapper, plot_verbose_pdfs_wrapper, plot_mean_group_position_pdf_wrapper
+        plot_transition_graph_wrapper, copy_h5_metadata_to_yaml_wrapper, make_crowd_movies_wrapper, \
+        plot_syllable_durations_wrapper, plot_syllable_speeds_wrapper, plot_verbose_pdfs_wrapper, \
+        plot_mean_group_position_pdf_wrapper
 
 orig_init = click.core.Option.__init__
 
@@ -163,6 +164,19 @@ def plot_usages(index_file, model_fit, output_file, sort, count, max_syllable, g
 
     print('Successfully graphed usage plots')
 
+@cli.command(name='plot-syllable-speeds', help="Plots syllable centroid speeds with different sorting,coloring and grouping capabilities")
+@click.argument('index-file', type=click.Path(exists=True, resolve_path=True))
+@click.argument('model-fit', type=click.Path(exists=True, resolve_path=True))
+@click.option('--output-file', type=click.Path(), default=os.path.join(os.getcwd(), 'speeds'), help="Filename to store plot")
+@common_syll_plot_options
+def plot_mean_syllable_speed(index_file, model_fit, output_file, max_syllable, group, count, sort,
+                ordering, ctrl_group, exp_group, colors, fmt, figsize):
+
+    plot_syllable_speeds_wrapper(model_fit, index_file, output_file, max_syllable=max_syllable, count=count,
+                                 sort=sort, group=group, ordering=ordering, ctrl_group=ctrl_group,
+                                 exp_group=exp_group, colors=colors, fmt=fmt, figsize=figsize)
+
+    print('Successfully graphed speed plots')
 
 @cli.command(name='plot-syllable-durations', help="Plots syllable durations with different sorting,coloring and grouping capabilities")
 @click.argument('index-file', type=click.Path(exists=True, resolve_path=True))
@@ -177,17 +191,3 @@ def plot_syllable_durations(index_file, model_fit, output_file, sort, count, max
                                  exp_group=exp_group, colors=colors, fmt=fmt, figsize=figsize)
 
     print('Successfully graphed duration plots')
-
-@cli.command(name='plot-syllable-speeds', help="Plots syllable centroid speeds with different sorting,coloring and grouping capabilities")
-@click.argument('index-file', type=click.Path(exists=True, resolve_path=True))
-@click.argument('model-fit', type=click.Path(exists=True, resolve_path=True))
-@click.option('--output-file', type=click.Path(), default=os.path.join(os.getcwd(), 'speeds'), help="Filename to store plot")
-@common_syll_plot_options
-def plot_mean_syllable_speed(index_file, model_fit, output_file, sort, count, max_syllable, group,
-                ordering, ctrl_group, exp_group, colors, fmt, figsize):
-
-    plot_mean_group_position_pdf_wrapper(model_fit, index_file, output_file, max_syllable=max_syllable, sort=sort,
-                                 count=count, group=group, ordering=ordering, ctrl_group=ctrl_group,
-                                 exp_group=exp_group, colors=colors, fmt=fmt, figsize=figsize)
-
-    print('Successfully graphed speed plots')

@@ -691,11 +691,12 @@ def compute_mean_syll_speed(complete_df, scalar_df, label_df, groups=None, max_s
 
     centroid_speeds = scalar_df[['centroid_speed_mm'] + gk]
 
-    if isinstance(groups, list):
+    if isinstance(groups, list) or isinstance(groups, tuple):
         if len(groups) == 0:
             groups = None
 
     all_sessions = []
+
     for col in tqdm(columns, total=len(columns), desc='Computing Per Session Syll Speeds'):
         if groups != None:
             if col[0] not in groups:

@@ -211,7 +211,7 @@ def plot_syllable_durations_wrapper(model_fit, index_file, output_file, count='u
     return plt
 
 def plot_syllable_speeds_wrapper(model_fit, index_file, output_file, group=None, ordering=None, colors=None,
-                                 ctrl_group=None, exp_group=None, max_syllable=40, fmt='o-', figsize=(10, 5)):
+                                 ctrl_group=None, exp_group=None, count='usage', max_syllable=40, sort=True, fmt='o-', figsize=(10, 5)):
     '''
     Wrapper function that computes the average syllable speed by averaging the speed at all occurrences
     of each syllable in [0, max_syllable) in each session. Then plots the results in the desired ordering.
@@ -250,7 +250,8 @@ def plot_syllable_speeds_wrapper(model_fit, index_file, output_file, group=None,
 
     max_syllable += 1  # accounting for last syllable in list
 
-    df, label_df = results_to_dataframe(model_data, sorted_index, max_syllable=max_syllable, sort=True, compute_labels=True)
+    df, label_df = results_to_dataframe(model_data, sorted_index, count=count,
+                                        max_syllable=max_syllable, sort=sort, compute_labels=True)
 
     scalar_df['centroid_speed_mm'] = compute_session_centroid_speeds(scalar_df)
 
