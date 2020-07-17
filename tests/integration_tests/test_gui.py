@@ -2,8 +2,8 @@ import os
 import shutil
 import ruamel.yaml as yaml
 from unittest import TestCase
-from moseq2_viz.gui import get_groups_command, add_group, make_crowd_movies_command,\
-                plot_usages_command, plot_scalar_summary_command, plot_transition_graph_command, \
+from moseq2_viz.gui import get_groups_command, add_group, plot_usages_command, \
+                plot_scalar_summary_command, plot_transition_graph_command, \
                 plot_syllable_durations_command, plot_mean_group_position_heatmaps_command, \
                 plot_verbose_position_heatmaps, plot_mean_syllable_speeds_command
 
@@ -14,7 +14,6 @@ class TestGUI(TestCase):
 
         with open(index_path, 'r') as f:
             index_data = yaml.safe_load(f)
-        f.close()
 
         groups, uuids = [], []
         subjectNames, sessionNames = [], []
@@ -36,7 +35,6 @@ class TestGUI(TestCase):
 
         with open(index_path, 'r') as f:
             index_data = yaml.safe_load(f)
-        f.close()
 
         with open(tmp_yaml, 'w') as g:
             yaml.safe_dump(index_data, g)

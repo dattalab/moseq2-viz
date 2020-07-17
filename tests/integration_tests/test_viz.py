@@ -3,7 +3,6 @@ import cv2
 import joblib
 import unittest
 import numpy as np
-import pandas as pd
 import networkx as nx
 import ruamel.yaml as yaml
 from unittest import TestCase

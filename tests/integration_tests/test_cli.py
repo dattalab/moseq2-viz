@@ -3,7 +3,8 @@ import shutil
 from unittest import TestCase
 from click.testing import CliRunner
 from moseq2_viz.cli import add_group, copy_h5_metadata_to_yaml, plot_scalar_summary, plot_group_position_heatmaps, \
-    plot_verbose_position_heatmaps, plot_transition_graph, plot_usages, plot_syllable_durations, make_crowd_movies
+    plot_verbose_position_heatmaps, plot_transition_graph, plot_usages, plot_syllable_durations, make_crowd_movies, \
+    plot_mean_syllable_speed
 
 
 class TestCLI(TestCase):
@@ -15,8 +16,6 @@ class TestCLI(TestCase):
         with open(original_file, 'w') as f:
             with open(input_path, 'r') as g:
                 f.write(g.read())
-            g.close()
-        f.close()
 
         runner = CliRunner()
 
@@ -145,6 +144,25 @@ class TestCLI(TestCase):
         os.remove(gen_dir + 'test_durations.png')
         os.remove(gen_dir + 'test_durations.pdf')
         os.removedirs(gen_dir)
+
+    def test_plot_mean_syll_speeds(self):
+        gen_dir = 'data/gen_plots/'
+
+        runner = CliRunner()
+
+        use_params = ['data/test_index.yaml',
+                      'data/test_model.p',
+                      '--output-file', gen_dir + 'test_speeds']
+
+        results = runner.invoke(plot_mean_syllable_speed, use_params)
+
+        assert (results.exit_code == 0), "CLI Command did not complete successfully"
+        assert (os.path.exists(gen_dir + 'test_speeds.png')), "Duration plot PNG not found"
+        assert (os.path.exists(gen_dir + 'test_speeds.pdf')), "Duration plot PDF not found"
+        os.remove(gen_dir + 'test_speeds.png')
+        os.remove(gen_dir + 'test_speeds.pdf')
+        os.removedirs(gen_dir)
+
 
     def test_make_crowd_movies(self):
         input_dir = 'data/'
