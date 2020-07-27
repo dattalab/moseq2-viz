@@ -96,7 +96,7 @@ def plot_scalar_summary_wrapper(index_file, output_file, groupby='group', colors
     scalar_df = scalars_to_dataframe(sorted_index)
 
     plt_scalars, _ = scalar_plot(scalar_df, group_var=groupby, colors=colors, headless=True)
-    plt_position, _ = position_plot(scalar_df, group_var=groupby, headless=True)
+    plt_position, _ = position_plot(scalar_df, group_var=groupby)
 
     plt_scalars.savefig('{}_summary.png'.format(output_file))
     plt_scalars.savefig('{}_summary.pdf'.format(output_file))
