@@ -17,14 +17,9 @@ click.core.Option.__init__ = new_init
 
 
 @click.group()
+@click.version_option()
 def cli():
     pass
-
-@cli.command('version', help='Print version number')
-def version():
-    import moseq2_viz
-    click.echo(moseq2_viz.__version__)
-
 
 def common_syll_plot_options(function):
     function = click.option('--sort', type=bool, default=True, help="Sort syllables by usage")(function)
