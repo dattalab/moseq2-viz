@@ -14,7 +14,8 @@ They are accessible via CLI or Jupyter Notebook in [moseq2-app](https://github.c
 Usage: moseq2-viz [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  --help  Show this message and exit.  [default: False]
+  --help              Show this message and exit.  [default: False]
+  --version           Print version number
 
 Commands:
   add-group                       Change group name in index file given a...
@@ -27,17 +28,25 @@ Commands:
   plot-transition-graph           Plots the transition graph depicting the...
   plot-usages                     Plots syllable usages with different...
   plot-verbose-position-heatmaps  Plots a position heatmap for each session...
-  version                         Print version number
 ```
 
 Run any command with the `--help` flag to display all available options and their descriptions.
 
 ## Documentation
 
-All documentation regarding moseq2-model can be found in the `Documentation.pdf` file in the root directory.
+MoSeq2 uses `sphinx` to generate the documentation in HTML and PDF forms. To install `sphinx`, follow the commands below:
+```.bash
+pip install sphinx==3.0.3
+pip install sphinx-rtd-theme
+pip install rst2pdf
+``` 
 
-An HTML ReadTheDocs page can be generated using the `sphinx` package via running the `make html` command 
-in the `docs/` directory.
+All documentation regarding moseq2-extract can be found in the `Documentation.pdf` file in the root directory,
+an HTML ReadTheDocs page can be generated via running the `make html` in the `docs/` directory.
+
+To generate a PDF version of the documentation, simply run `make pdf` in the `docs/` directory.
+
+## Prerequisites
 
 To use this package, you must already have computed a `pca_scores.h5` files, a trained model: `model.p`, an index file
  `moseq2-index.yaml` listing all your analyzed sessions and paths to their extracted `.h5` files.  
