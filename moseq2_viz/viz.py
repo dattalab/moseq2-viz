@@ -157,7 +157,7 @@ def graph_transition_matrix(trans_mats, usages=None, groups=None,
                             edge_threshold=.0025, anchor=0, usage_threshold=0,
                             node_color='w', node_edge_color='r', layout='spring',
                             edge_width_scale=100, node_size=400, fig=None, ax=None,
-                            width_per_group=8, height=8, headless=False, font_size=12,
+                            width_per_group=8, headless=False, font_size=12,
                             plot_differences=True, difference_threshold=.0005,
                             difference_edge_width_scale=500, weights=None,
                             usage_scale=1e5, arrows=False, keep_orphans=False,
@@ -438,8 +438,6 @@ def make_crowd_matrix(slices, nexamples=50, pad=30, raw_size=(512, 424), frame_p
 
     max_dur = durs.max()
 
-    # original_dtype = h5py.File(use_slices[0][2], 'r')['frames'].dtype
-
     if max_dur < 0:
         return None
 
@@ -565,8 +563,7 @@ def make_crowd_matrix(slices, nexamples=50, pad=30, raw_size=(512, 424), frame_p
 
 
 def position_plot(scalar_df, centroid_vars=['centroid_x_mm', 'centroid_y_mm'],
-                  sort_vars=['SubjectName', 'uuid'], group_var='group', sz=50,
-                  headless=False, **kwargs):
+                  sort_vars=['SubjectName', 'uuid'], group_var='group', sz=50, **kwargs):
     '''
     Creates a position summary graph that shows all the
     mice's centroid path throughout the respective sessions.
@@ -578,7 +575,6 @@ def position_plot(scalar_df, centroid_vars=['centroid_x_mm', 'centroid_y_mm'],
     sort_vars (list): list of variables to sort the dataframe by.
     group_var (str): groups df column to graph position plots for.
     sz (int): plot size.
-    headless (bool): UNUSED
     kwargs (dict): extra keyword arguments
 
     Returns

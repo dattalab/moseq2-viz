@@ -673,7 +673,7 @@ def get_frame_label_df(labels, uuids, groups):
     label_df = pd.DataFrame(labels, columns=range(total_columns), index=[groups, uuids])
     return label_df
 
-def results_to_dataframe(model_dict, index_dict, sort=False, count='usage', normalize=True, max_syllable=40,
+def results_to_dataframe(model_dict, index_dict, sort=False, count='usage', max_syllable=40,
                          include_meta=['SessionName', 'SubjectName', 'StartTime'], compute_labels=False):
     '''
     Converts inputted model dictionary to DataFrame with user specified metadata columns.
@@ -685,7 +685,6 @@ def results_to_dataframe(model_dict, index_dict, sort=False, count='usage', norm
     index_dict (dict): loaded index file dictionary
     sort (bool): indicate whether to relabel syllables by usage.
     count (str): indicate what to sort the labels by: usage, or frames
-    normalize (bool): unused.
     max_syllable (int): maximum number of syllables to include in dataframe.
     include_meta (list): mouse metadata to include in dataframe.
 

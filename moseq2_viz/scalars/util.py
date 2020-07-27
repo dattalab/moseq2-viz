@@ -404,8 +404,7 @@ def remove_nans_from_labels(idx, labels):
 
 
 def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'SubjectName', 'StartTime'],
-                         include_model=None, disable_output=False, include_pcs=False, npcs=10,
-                         include_feedback=None, force_conversion=True, include_labels=False):
+                         include_model=None, disable_output=False, include_feedback=None, force_conversion=True):
     '''
     Generates a dataframe containing scalar values over the course of a recording session.
     If a model string is included, then return only animals that were included in the model
@@ -417,11 +416,8 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
     include_keys (list): a list of other moseq related keys to include in the dataframe
     include_model (str): path to an existing moseq model
     disable_output (bool): indicate whether to show tqdm output.
-    include_pcs (bool): UNUSED
-    npcs (int): UNUSED
     include_feedback (bool): indicate whether to include timestamp data
     force_conversion (bool): force the conversion of centroid_[xy]_px into mm.
-    include_labels (bool): UNUSED
 
     Returns
     -------
@@ -429,7 +425,6 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
     '''
 
     scalar_dict = defaultdict(list)
-    skip = []
 
     files = index['files']
     try:
