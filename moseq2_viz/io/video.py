@@ -1,6 +1,6 @@
 '''
 
-Helper functions for handling crowd movie file writing.
+Helper functions for handling crowd movie file writing and video metadata maintenance.
 
 '''
 
@@ -14,8 +14,12 @@ from tqdm.auto import tqdm
 import multiprocessing as mp
 from functools import partial
 import matplotlib.pyplot as plt
+from moseq2_viz.util import read_yaml
 from moseq2_viz.viz import make_crowd_matrix
+from cytoolz.itertoolz import peek, pluck, first
+from cytoolz.dicttoolz import valfilter, merge_with
 from moseq2_viz.model.util import get_syllable_slices
+from cytoolz.curried import get_in, keyfilter, valmap
 
 def write_crowd_movie_info_file(model_path, model_fit, index_file, output_dir):
     '''
@@ -55,9 +59,62 @@ def write_crowd_movie_info_file(model_path, model_fit, index_file, output_dir):
     with open(info_file, 'w+') as f:
         yaml.safe_dump(info_dict, f)
 
+def check_video_parameters(index: dict) -> dict:
+    '''
+    Iterates through each extraction parameter file to verify extraction parameters
+    were the same. If they weren't this function raises a RuntimeError.
 
-def write_crowd_movies(sorted_index, config_data, filename_format, vid_parameters, clean_params, ordering, \
-                       labels, label_uuids, max_syllable, max_examples, output_dir):
+    Parameters
+    ----------
+    index (dict): a `sorted_index` dictionary of extraction parameters.
+
+    Returns
+    -------
+    vid_parameters (dict): a dictionary with a subset of the used extraction parameters.
+    '''
+
+    # define constants
+    check_parameters = ['crop_size', 'fps', 'max_height', 'min_height']
+
+    get_yaml = get_in(['path', 1])
+    ymls = list(map(get_yaml, index['files'].values()))
+
+    # load yaml config files when needed
+    dicts = map(read_yaml, ymls)
+    # get the parameters key within each dict
+    params = pluck('parameters', dicts)
+
+    first_entry, params = peek(params)
+    if 'resolution' in first_entry:
+        check_parameters += ['resolution']
+
+    # filter for only keys in check_parameters
+    params = map(keyfilter(lambda k: k in check_parameters), params)
+    # turn lists (in the dict values) into tuples
+    params = map(valmap(lambda x: tuple(x) if isinstance(x, list) else x), params)
+
+    # get unique parameter values
+    vid_parameters = merge_with(set, params)
+
+    incorrect_parameters = valfilter(lambda x: len(x) > 1, vid_parameters)
+
+    # if there are multiple values for a parameter, raise error
+    if incorrect_parameters:
+        raise RuntimeError('The following parameters are not equal ' +
+                           f'across extractions: {incorrect_parameters.keys()}')
+
+    # grab the first value in the set
+    vid_parameters = valmap(first, vid_parameters)
+
+    # update resolution
+    if 'resolution' in vid_parameters:
+        vid_parameters['resolution'] = tuple(x + 100 for x in vid_parameters['resolution'])
+    else:
+        vid_parameters['resolution'] = None
+
+    return vid_parameters
+
+def write_crowd_movies(sorted_index, config_data, ordering, labels, label_uuids, output_dir):
     '''
     Creates syllable slices for crowd movies and writes them to files.
 
@@ -66,13 +123,9 @@ def write_crowd_movies(sorted_index, config_data, filename_format, vid_parameter
     sorted_index (dict): dictionary of sorted index data.
     config_data (dict): dictionary of visualization parameters.
     filename_format (str): string format that denotes the saved crowd movie file names.
-    vid_parameters (dict): dictionary of video writing parameters
-    clean_params (dict): dictionary of image filtering parameters
     ordering (list): ordering for the new mapping of the relabeled syllable usages.
     labels (numpy ndarray): list of syllable usages
     label_uuids (list): list of session uuids each series of labels belongs to.
-    max_syllable (int): maximum number of syllables to create movies for
-    max_examples (int): maximum number of mice to include in a crowd movie
     output_dir (str): path directory where all the movies are written.
 
     Returns
@@ -80,16 +133,34 @@ def write_crowd_movies(sorted_index, config_data, filename_format, vid_parameter
     None
     '''
 
+    # Filtering parameters
+    clean_params = {
+        'gaussfilter_space': config_data['gaussfilter_space'],
+        'medfilter_space': config_data['medfilter_space']
+    }
+
+    # Set crowd movie filename format based on whether syllables were relabeled
+    if config_data['sort']:
+        filename_format = 'syllable_sorted-id-{:d} ({})_original-id-{:d}.mp4'
+    else:
+        filename_format = 'syllable_{:d}.mp4'
+
+    # Ensure all video metadata parameters are consistent
+    vid_parameters = check_video_parameters(sorted_index)
+    if vid_parameters['resolution'] is not None:
+        config_data['raw_size'] = vid_parameters['resolution']
+
     with mp.Pool() as pool:
         slice_fun = partial(get_syllable_slices,
                             labels=labels,
                             label_uuids=label_uuids,
                             index=sorted_index)
         with warnings.catch_warnings():
-            slices = list(tqdm(pool.imap(slice_fun, range(max_syllable)), total=max_syllable, desc='Getting Syllable Slices'))
+            slices = list(tqdm(pool.imap(slice_fun, range(config_data['max_syllable'])),
+                               total=config_data['max_syllable'], desc='Getting Syllable Slices'))
 
         matrix_fun = partial(make_crowd_matrix,
-                             nexamples=max_examples,
+                             nexamples=config_data['max_examples'],
                              dur_clip=config_data['dur_clip'],
                              min_height=config_data['min_height'],
                              crop_size=vid_parameters['crop_size'],
@@ -99,14 +170,16 @@ def write_crowd_movies(sorted_index, config_data, filename_format, vid_parameter
                              **clean_params)
 
         with warnings.catch_warnings():
-            crowd_matrices = list(tqdm(pool.imap(matrix_fun, slices), total=max_syllable, desc='Getting Crowd Matrices'))
+            crowd_matrices = list(tqdm(pool.imap(matrix_fun, slices), total=config_data['max_syllable'],
+                                       desc='Getting Crowd Matrices'))
 
         write_fun = partial(write_frames_preview, fps=vid_parameters['fps'], depth_min=config_data['min_height'],
                             depth_max=config_data['max_height'], cmap=config_data['cmap'])
         pool.starmap(write_fun,
                      [(os.path.join(output_dir, filename_format.format(i, config_data['count'], ordering[i])),
                        crowd_matrix)
-                      for i, crowd_matrix in tqdm(enumerate(crowd_matrices), total=max_syllable, desc='Writing Movies') if crowd_matrix is not None])
+                      for i, crowd_matrix in tqdm(enumerate(crowd_matrices), total=config_data['max_syllable'],
+                                                  desc='Writing Movies') if crowd_matrix is not None])
 
 
 

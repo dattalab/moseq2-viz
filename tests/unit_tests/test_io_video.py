@@ -4,9 +4,9 @@ import joblib
 import numpy as np
 import ruamel.yaml as yaml
 from unittest import TestCase
-from moseq2_viz.util import check_video_parameters, parse_index
+from moseq2_viz.util import parse_index
 from moseq2_viz.model.util import parse_model_results, relabel_by_usage
-from moseq2_viz.io.video import write_crowd_movies, write_frames_preview
+from moseq2_viz.io.video import write_crowd_movies, write_frames_preview, check_video_parameters
 
 
 class TestIOVideo(TestCase):
@@ -22,12 +22,9 @@ class TestIOVideo(TestCase):
 
         with open(config_file, 'r') as f:
             config_data = yaml.safe_load(f)
-        f.close()
 
-        if config_data['sort']:
-            filename_format = 'syllable_sorted-id-{:d} ({})_original-id-{:d}.mp4'
-        else:
-            filename_format = 'syllable_{:d}.mp4'
+        config_data['max_syllable'] = max_syllable
+        config_data['max_examples'] = max_examples
 
         model_fit = parse_model_results(joblib.load(model_path))
         labels = model_fit['labels']
@@ -41,19 +38,13 @@ class TestIOVideo(TestCase):
             os.makedirs(output_dir)
 
         index, sorted_index = parse_index(index_file)
-        vid_parameters = check_video_parameters(sorted_index)
-        clean_params = {
-            'gaussfilter_space': config_data['gaussfilter_space'],
-            'medfilter_space': config_data['medfilter_space']
-        }
 
         if config_data['sort']:
             labels, ordering = relabel_by_usage(labels, count=config_data['count'])
         else:
             ordering = list(range(max_syllable))
 
-        write_crowd_movies(sorted_index, config_data, filename_format, vid_parameters, clean_params, ordering,
-                           labels, label_uuids, max_syllable, max_examples, output_dir)
+        write_crowd_movies(sorted_index, config_data, ordering, labels, label_uuids, output_dir)
 
         assert (os.path.exists(output_dir))
         assert (len(os.listdir(output_dir)) == max_syllable)
