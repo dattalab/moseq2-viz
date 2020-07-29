@@ -13,19 +13,80 @@ import h5py
 import shutil
 import psutil
 import joblib
-import numpy as np
 from sys import platform
 import ruamel.yaml as yaml
 from tqdm.auto import tqdm
+from functools import wraps
 from moseq2_viz.util import parse_index
-from moseq2_viz.io.video import write_crowd_movies
-from moseq2_viz.scalars.util import scalars_to_dataframe, compute_mean_syll_speed, compute_all_pdf_data, \
-                            compute_session_centroid_speeds
-from moseq2_viz.viz import (plot_syll_stats_with_sem, scalar_plot, position_plot, graph_transition_matrix, \
-                            plot_mean_group_heatmap, plot_verbose_heatmap)
-from moseq2_viz.util import (recursive_find_h5s, check_video_parameters, h5_to_dict, clean_dict)
-from moseq2_viz.model.util import (relabel_by_usage, parse_model_results, get_syllable_statistics,
-                                   merge_models, get_transition_matrix, results_to_dataframe)
+from moseq2_viz.io.video import write_crowd_movies, write_crowd_movie_info_file
+from moseq2_viz.scalars.util import scalars_to_dataframe, compute_mean_syll_speed, \
+                                    compute_all_pdf_data, compute_session_centroid_speeds
+from moseq2_viz.util import recursive_find_h5s, check_video_parameters, h5_to_dict, clean_dict
+from moseq2_viz.viz import plot_syll_stats_with_sem, scalar_plot, position_plot, plot_mean_group_heatmap, \
+                           plot_verbose_heatmap, save_fig
+from moseq2_viz.model.util import relabel_by_usage, parse_model_results,  merge_models, results_to_dataframe,\
+                                  compute_and_graph_grouped_TMs
+
+def wrapper_function_setup(function):
+    '''
+
+    Parameters
+    ----------
+    function
+
+    Returns
+    -------
+
+    '''
+
+    @wraps(function)
+    def wrapped(*args, **kwargs):
+
+        caller = function.__name__
+        model_fit, output_file = None, None
+
+        if any(x in caller for x in ['scalar', 'pdf']):
+            index_file, output_file = args[0], args[1]
+
+        elif 'stat' in caller:
+            model_fit, index_file, output_file = args[0], args[1], args[2]
+
+        elif any(x in caller for x in ['crowd', 'transition']):
+            index_file, model_fit = args[0], args[1]
+            if 'transition' in caller:
+                output_file = args[3]
+            elif 'crowd' in caller:
+                output_dir = args[3]
+                # Set up output directory to save crowd movies in
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
+
+        # Set up output directory to save plots in
+        if output_file != None:
+            if not os.path.exists(os.path.dirname(output_file)):
+                os.makedirs(os.path.dirname(output_file))
+
+        # Get sorted index dict
+        if index_file != None:
+            index, sorted_index = parse_index(index_file)
+            kwargs['index'] = index
+            kwargs['sorted_index'] = sorted_index
+
+        if model_fit != None:
+            # If the user passes model directory, merge model states by
+            # minimum distance between them relative to first model in list
+            if os.path.isdir(model_fit):
+                model_data = merge_models(model_fit, 'p')
+            elif model_fit.endswith('.p') or model_fit.endswith('.pz'):
+                model_data = parse_model_results(joblib.load(model_fit))
+            elif model_fit.endswith('.h5'):
+                # TODO: add h5 file model parsing capability
+                pass
+
+            kwargs['model_data'] = model_data
+
+        return function(*args, **kwargs)
+    return wrapped
 
 def add_group_wrapper(index_file, config_data):
     '''
@@ -52,6 +113,7 @@ def add_group_wrapper(index_file, config_data):
     if type(value) is str:
         value = [value]
 
+    # Search for inputted key-value pair and relabel all found instances in index
     for v in value:
         if config_data['exact']:
             v = r'\b{}\b'.format(v)
@@ -69,8 +131,8 @@ def add_group_wrapper(index_file, config_data):
             if hit:
                 index['files'][position]['group'] = config_data['group']
 
+    # Atomically write updated index file
     new_index = '{}_update.yaml'.format(index_file.replace('.yaml', ''))
-
     try:
         with open(new_index, 'w+') as f:
             yaml.safe_dump(index, f)
@@ -80,8 +142,8 @@ def add_group_wrapper(index_file, config_data):
 
     print('Group(s) added successfully.')
 
-
-def plot_scalar_summary_wrapper(index_file, output_file, groupby='group', colors=None):
+@wrapper_function_setup
+def plot_scalar_summary_wrapper(index_file, output_file, groupby='group', colors=None, **kwargs):
     '''
     Wrapper function that plots scalar summary graphs.
 
@@ -98,25 +160,26 @@ def plot_scalar_summary_wrapper(index_file, output_file, groupby='group', colors
     (Only accessible through GUI API)
     '''
 
-    if not os.path.exists(os.path.dirname(output_file)):
-        os.makedirs(os.path.dirname(output_file))
+    sorted_index = kwargs['sorted_index']
 
-    index, sorted_index = parse_index(index_file)
+    # Parse index dict files to return pandas DataFrame of all computed scalars from extraction step
     scalar_df = scalars_to_dataframe(sorted_index)
 
+    # Plot Scalar Summary with specified groupings and colors
     plt_scalars, _ = scalar_plot(scalar_df, group_var=groupby, colors=colors, headless=True)
+
+    # Plot Position Summary of all mice in columns organized by groups
     plt_position, _ = position_plot(scalar_df, group_var=groupby)
 
-    plt_scalars.savefig('{}_summary.png'.format(output_file))
-    plt_scalars.savefig('{}_summary.pdf'.format(output_file))
-
-    plt_position.savefig('{}_position.png'.format(output_file))
-    plt_position.savefig('{}_position.pdf'.format(output_file))
+    # Write images to files
+    save_fig(plt_scalars, output_file, name='{}_summary')
+    save_fig(plt_position, output_file, name='{}_position')
 
     return scalar_df
 
-def plot_syllable_usages_wrapper(model_fit, index_file, output_file, sort=True, count='usage', group=None, max_syllable=40,
-                                 fmt='o-', ordering=None, ctrl_group=None, exp_group=None, colors=None, figsize=(10, 5)):
+@wrapper_function_setup
+def plot_syllable_stat_wrapper(model_fit, index_file, output_file, stat='usage', sort=True, count='usage', group=None, max_syllable=40,
+                                 fmt='o-', ordering=None, ctrl_group=None, exp_group=None, colors=None, figsize=(10, 5), **kwargs):
     '''
     Wrapper function to plot specified syllable statistic.
 
@@ -147,21 +210,15 @@ def plot_syllable_usages_wrapper(model_fit, index_file, output_file, sort=True, 
     # Edge case: Accounting for mutation sorting
     max_syllable += 1
 
+    model_data = kwargs['model_data']
+    sorted_index = kwargs['sorted_index']
 
-    # if the user passes model directory, merge model states by
-    # minimum distance between them relative to first model in list
-    if not os.path.exists(os.path.dirname(output_file)):
-        os.makedirs(os.path.dirname(output_file))
     compute_labels = False
     if stat == 'speed':
         # Load scalar Dataframe to compute syllable speeds
         scalar_df = scalars_to_dataframe(sorted_index)
         compute_labels = True
 
-    if os.path.isdir(model_fit):
-        model_data = merge_models(model_fit, 'p')
-    else:
-        model_data = parse_model_results(joblib.load(model_fit))
     # Compute a syllable summary Dataframe containing usage-based
     # sorted/relabeled syllable usage and duration information from [0, max_syllable] inclusive
     df, label_df = results_to_dataframe(model_data, sorted_index, count=count,
@@ -177,12 +234,13 @@ def plot_syllable_usages_wrapper(model_fit, index_file, output_file, sort=True, 
     plt, lgd = plot_syll_stats_with_sem(df, ctrl_group=ctrl_group, exp_group=exp_group, colors=colors, groups=group,
                                       fmt=fmt, ordering=ordering, stat=stat, max_sylls=max_syllable, figsize=figsize)
 
-    plt.savefig('{}.png'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
-    plt.savefig('{}.pdf'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
+    # Save
+    save_fig(plt, output_file, bbox_extra_artists=(lgd,), bbox_inches='tight')
 
     return plt
 
-def plot_mean_group_position_pdf_wrapper(index_file, output_file):
+@wrapper_function_setup
+def plot_mean_group_position_pdf_wrapper(index_file, output_file, **kwargs):
     '''
     Wrapper function that computes the PDF of the rodent's position throughout the respective sessions,
     and averages these values with respect to their groups to graph a mean position heatmap for each group.
@@ -198,22 +256,24 @@ def plot_mean_group_position_pdf_wrapper(index_file, output_file):
     fig (pyplot figure): figure to graph in Jupyter Notebook.
     '''
 
-    if not os.path.exists(os.path.dirname(output_file)):
-        os.makedirs(os.path.dirname(output_file))
+    sorted_index = kwargs['sorted_index']
 
-    index, sorted_index = parse_index(index_file)
+    # Load scalar dataframe to compute position PDF heatmap
     scalar_df = scalars_to_dataframe(sorted_index)
 
-    pdfs, groups, sessions, subjectNames = compute_all_pdf_data(scalar_df, normalize=True)
+    # Compute Position PDF Heatmaps for all sessions
+    pdfs, groups, sessions, subjectNames = compute_all_pdf_data(scalar_df)
 
+    # Plot the average Position PDF Heatmap for each group
     fig = plot_mean_group_heatmap(pdfs, groups)
 
-    fig.savefig('{}.png'.format(output_file))
-    fig.savefig('{}.pdf'.format(output_file))
+    # Save
+    save_fig(fig, output_file)
 
     return fig
 
-def plot_verbose_pdfs_wrapper(index_file, output_file):
+@wrapper_function_setup
+def plot_verbose_pdfs_wrapper(index_file, output_file, **kwargs):
     '''
     Wrapper function that computes the PDF for the mouse position for each session in the index file.
     Will plot each session's heatmap with a "SessionName: Group"-like title.
@@ -228,22 +288,24 @@ def plot_verbose_pdfs_wrapper(index_file, output_file):
     fig (pyplot figure): figure to graph in Jupyter Notebook.
     '''
 
-    if not os.path.exists(os.path.dirname(output_file)):
-        os.makedirs(os.path.dirname(output_file))
+    sorted_index = kwargs['sorted_index']
 
-    index, sorted_index = parse_index(index_file)
+    # Load scalar dataframe to compute position PDF heatmap
     scalar_df = scalars_to_dataframe(sorted_index)
 
+    # Compute PDF Heatmaps for all sessions
     pdfs, groups, sessions, subjectNames = compute_all_pdf_data(scalar_df)
 
+    # Plot all session heatmaps in columns organized by groups
     fig = plot_verbose_heatmap(pdfs, sessions, groups, subjectNames)
 
-    fig.savefig('{}.png'.format(output_file))
-    fig.savefig('{}.pdf'.format(output_file))
+    # Save
+    save_fig(fig, output_file)
 
     return fig
 
-def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_file):
+@wrapper_function_setup
+def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_file, **kwargs):
     '''
     Wrapper function to plot transition graphs.
 
@@ -259,76 +321,45 @@ def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_fil
     plt (pyplot figure): graph to show in Jupyter Notebook.
     '''
 
-    if not os.path.exists(os.path.dirname(output_file)):
-        os.makedirs(os.path.dirname(output_file))
+    model_data = kwargs['model_data']
+    index, sorted_index = kwargs['index'], kwargs['sorted_index']
 
-    max_syllable = config_data['max_syllable']
-
+    # Optionally load pygraphviz for transition graph layout configuration
     if config_data.get('layout').lower()[:8] == 'graphviz':
         try:
             import pygraphviz
         except ImportError:
             raise ImportError('pygraphviz must be installed to use graphviz layout engines')
 
+    # Set groups to plot
     if config_data.get('group') != None:
         group = config_data['group']
 
-    if os.path.isdir(model_fit):
-        model_data = merge_models(model_fit, 'p')
-    else:
-        model_data = parse_model_results(joblib.load(model_fit))
-
-    index, sorted_index = parse_index(index_file)
+    # Get labels and optionally relabel them by usage sorting
     labels = model_data['labels']
-
     if config_data['sort']:
         labels = relabel_by_usage(labels, count=config_data['count'])[0]
 
+    # Get modeled session uuids to compute group-mean transition graph for
     if 'train_list' in model_data.keys():
         label_uuids = model_data['train_list']
     else:
         label_uuids = model_data['keys']
 
+    # Loading modeled groups from index file by looking up their session's corresponding uuid
     label_group = []
-
-    print('Sorting labels...')
-
     if 'group' in index['files'][0].keys() and len(group) > 0:
-        for uuid in label_uuids:
-            if uuid in sorted_index['files'].keys():
-                label_group.append(sorted_index['files'][uuid]['group'])
-            else:
-                print('WARNING: UUIDs in model results do not match the index file!')
-                label_group.append('default')
+        label_group = [sorted_index['files'][uuid]['group'] if uuid in sorted_index['files'].keys() \
+                                                            else 'default' for uuid in label_uuids]
     else:
+        # If no index file is found, set session grouping as nameless default to plot a single transition graph
         label_group = [''] * len(model_data['labels'])
         group = list(set(label_group))
 
     print('Computing transition matrices...')
     try:
-        trans_mats = []
-        usages = []
-        for plt_group in group:
-            use_labels = [lbl for lbl, grp in zip(labels, label_group) if grp == plt_group]
-            trans_mats.append(get_transition_matrix(use_labels, normalize=config_data['normalize'], combine=True,
-                                                    max_syllable=max_syllable))
-            usages.append(get_syllable_statistics(use_labels)[0])
-        if not config_data['scale_node_by_usage']:
-            usages = None
-
-        print('Creating plot...')
-
-        plt, _, _ = graph_transition_matrix(trans_mats, usages=usages, width_per_group=config_data['width_per_group'],
-                                            edge_threshold=config_data['edge_threshold'],
-                                            edge_width_scale=config_data['edge_scaling'],
-                                            difference_edge_width_scale=config_data['edge_scaling'],
-                                            keep_orphans=config_data['keep_orphans'],
-                                            orphan_weight=config_data['orphan_weight'], arrows=config_data['arrows'],
-                                            usage_threshold=config_data['usage_threshold'],
-                                            layout=config_data['layout'], groups=group,
-                                            usage_scale=config_data['node_scaling'], headless=True)
-        plt.savefig('{}.png'.format(output_file))
-        plt.savefig('{}.pdf'.format(output_file))
+        # Compute Transition Matrices
+        plt = compute_and_graph_grouped_TMs(config_data, labels, label_group, group)
     except:
         print('Incorrectly inputted group, plotting all groups.')
 
@@ -336,29 +367,15 @@ def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_fil
         group = list(set(label_group))
 
         print('Recomputing transition matrices...')
+        plt = compute_and_graph_grouped_TMs(config_data, labels, label_group, group)
 
-        trans_mats = []
-        usages = []
-        for plt_group in group:
-            use_labels = [lbl for lbl, grp in zip(labels, label_group) if grp == plt_group]
-            trans_mats.append(get_transition_matrix(use_labels, normalize=config_data['normalize'], combine=True,
-                                                    max_syllable=max_syllable))
-            usages.append(get_syllable_statistics(use_labels)[0])
+    # Save
+    save_fig(plt, output_file)
 
-        plt, _, _ = graph_transition_matrix(trans_mats, usages=usages, width_per_group=config_data['width_per_group'],
-                                            edge_threshold=config_data['edge_threshold'],
-                                            edge_width_scale=config_data['edge_scaling'],
-                                            difference_edge_width_scale=config_data['edge_scaling'],
-                                            keep_orphans=config_data['keep_orphans'],
-                                            orphan_weight=config_data['orphan_weight'], arrows=config_data['arrows'],
-                                            usage_threshold=config_data['usage_threshold'],
-                                            layout=config_data['layout'], groups=group,
-                                            usage_scale=config_data['node_scaling'], headless=True)
-        plt.savefig('{}.png'.format(output_file))
-        plt.savefig('{}.pdf'.format(output_file))
     return plt
 
-def make_crowd_movies_wrapper(index_file, model_path, config_data, output_dir):
+@wrapper_function_setup
+def make_crowd_movies_wrapper(index_file, model_path, config_data, output_dir, **kwargs):
     '''
     Wrapper function to create crowd movie videos and write them to individual
     files depicting respective syllable labels.
@@ -375,67 +392,38 @@ def make_crowd_movies_wrapper(index_file, model_path, config_data, output_dir):
     None
     '''
 
-    max_syllable = config_data['max_syllable']
-    max_examples = config_data['max_examples']
+    model_fit = kwargs['model_data']
 
+    # Load index dictionary to read session uuids and their respective extraction paths
+    index, sorted_index = kwargs['index'], kwargs['sorted_index']
+
+    # Get number of CPUs to optimize crowd movie creation and writing speed
     if platform in ['linux', 'linux2']:
         print('Setting CPU affinity to use all CPUs...')
         cpu_count = psutil.cpu_count()
         proc = psutil.Process()
         proc.cpu_affinity(list(range(cpu_count)))
 
+    # Filtering parameters
     clean_params = {
         'gaussfilter_space': config_data['gaussfilter_space'],
         'medfilter_space': config_data['medfilter_space']
     }
 
-    # need to handle h5 intelligently here...
+    # Get list of syllable labels for all sessions
+    labels = model_fit['labels']
 
-    if model_path.endswith('.p') or model_path.endswith('.pz'):
-        model_fit = parse_model_results(joblib.load(model_path))
-        labels = model_fit['labels']
+    # Get modeled session uuids
+    if 'train_list' in model_fit:
+        label_uuids = model_fit['train_list']
+    else:
+        label_uuids = model_fit['keys']
 
-        if 'train_list' in model_fit:
-            label_uuids = model_fit['train_list']
-        else:
-            label_uuids = model_fit['keys']
-    elif model_path.endswith('.h5'):
-        # load in h5, use index found using another function
-        pass
-    elif os.path.isdir(model_path):
-        model_fit = merge_models(model_path, 'p')
-        labels = model_fit['labels']
-        if 'train_list' in model_fit:
-            label_uuids = model_fit['train_list']
-        else:
-            label_uuids = model_fit['keys']
-
-
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    info_parameters = ['model_class', 'kappa', 'gamma', 'alpha']
-    info_dict = {k: model_fit['model_parameters'][k] for k in info_parameters}
-
-    # convert numpy dtypes to their corresponding primitives
-    for k, v in info_dict.items():
-        if isinstance(v, (np.ndarray, np.generic)):
-            info_dict[k] = info_dict[k].item()
-
-    info_dict['model_path'] = model_path
-    info_dict['index_path'] = index_file
-    info_file = os.path.join(output_dir, 'info.yaml')
-
-    with open(info_file, 'w+') as f:
-        yaml.safe_dump(info_dict, f)
-
+    # Relabel syllable labels by usage sorting and save the ordering for crowd-movie file naming
     if config_data['sort']:
         labels, ordering = relabel_by_usage(labels, count=config_data['count'])
     else:
-        ordering = list(range(max_syllable))
-
-    index, sorted_index = parse_index(index_file)
-    vid_parameters = check_video_parameters(sorted_index)
+        ordering = list(range(config_data['max_syllable']))
 
     # uuid in both the labels and the index
     uuid_set = set(label_uuids) & set(sorted_index['files'].keys())
@@ -448,16 +436,22 @@ def make_crowd_movies_wrapper(index_file, model_path, config_data, output_dir):
     label_uuids = [uuid for uuid in label_uuids if uuid in uuid_set]
     sorted_index['files'] = {k: v for k, v in sorted_index['files'].items() if k in uuid_set}
 
+    write_crowd_movie_info_file(model_path=model_path, model_fit=model_fit, index_file=index_file, output_dir=output_dir)
+
+    # Ensure all video metadata parameters are consistent
+    vid_parameters = check_video_parameters(sorted_index)
     if vid_parameters['resolution'] is not None:
         config_data['raw_size'] = vid_parameters['resolution']
 
+    # Set crowd movie filename format based on whether syllables were relabeled
     if config_data['sort']:
         filename_format = 'syllable_sorted-id-{:d} ({})_original-id-{:d}.mp4'
     else:
         filename_format = 'syllable_{:d}.mp4'
 
-    write_crowd_movies(sorted_index, config_data, filename_format, vid_parameters, clean_params, ordering,
-                       labels, label_uuids, max_syllable, max_examples, output_dir)
+    # Write movies
+    write_crowd_movies(sorted_index, config_data, filename_format, vid_parameters, clean_params,
+                   ordering, labels, label_uuids, config_data['max_syllable'], config_data['max_examples'], output_dir)
 
 def copy_h5_metadata_to_yaml_wrapper(input_dir, h5_metadata_path):
     '''

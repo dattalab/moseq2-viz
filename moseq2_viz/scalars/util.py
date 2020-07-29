@@ -603,7 +603,7 @@ def make_a_heatmap(position):
     return pdf
 
 
-def compute_all_pdf_data(scalar_df, normalize=False, centroid_vars=['centroid_x_mm', 'centroid_y_mm']):
+def compute_all_pdf_data(scalar_df, normalize=True, centroid_vars=['centroid_x_mm', 'centroid_y_mm']):
     '''
     Computes a position PDF for all sessions and returns the pdfs with corresponding lists of
      groups, session uuids, and subjectNames.

@@ -63,6 +63,25 @@ def clean_frames(frames, medfilter_space=None, gaussfilter_space=None,
 
     return out
 
+def save_fig(fig, output_file, name='{}', **kwargs):
+    '''
+
+    Convenience function for saving created/open matplotlib figures to PNG and PDF formats.
+
+    Parameters
+    ----------
+    fig (pyplot.Figure): open figure to save
+    output_file (str): path to save figure to
+    name (str): dynamic figure name; allows for overriding name with specific value/prefix
+    kwargs (dict): dictionary containing additional figure saving parameters. (check plot-stats in wrappers.py)
+
+    Returns
+    -------
+    None
+    '''
+
+    fig.savefig(f'{name}.png'.format(output_file), **kwargs)
+    fig.savefig(f'{name}.pdf'.format(output_file), **kwargs)
 
 def convert_ebunch_to_graph(ebunch):
     '''

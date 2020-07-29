@@ -9,12 +9,52 @@ import cv2
 import warnings
 import subprocess
 import numpy as np
+import ruamel.yaml as yaml
 from tqdm.auto import tqdm
 import multiprocessing as mp
 from functools import partial
 import matplotlib.pyplot as plt
 from moseq2_viz.viz import make_crowd_matrix
 from moseq2_viz.model.util import get_syllable_slices
+
+def write_crowd_movie_info_file(model_path, model_fit, index_file, output_dir):
+    '''
+
+    Creates an info.yaml file in the crowd movie directory that holds model training parameters.
+    This file helps identify the conditions from which the crowd movies were generated.
+
+    Parameters
+    ----------
+    model_path (str): path to model used to generate movies
+    model_fit (dict): loaded ARHMM dict
+    index_file (str): path to index file used with model
+    output_dir (str): path to crowd movies directory to store file in.
+
+    Returns
+    -------
+    None
+    '''
+
+    # Crowd movie info file contents; used to indicate the modeling state the crowd_movies were generated from
+    info_parameters = ['model_class', 'kappa', 'gamma', 'alpha']
+
+    # Loading parameters to dict to save to file in output directory
+    info_file = os.path.join(output_dir, 'info.yaml')
+    info_dict = {k: model_fit['model_parameters'][k] for k in info_parameters}
+
+    # Adding model and index file paths
+    info_dict['model_path'] = model_path
+    info_dict['index_path'] = index_file
+
+    # Convert numpy dtypes to their corresponding primitives
+    for k, v in info_dict.items():
+        if isinstance(v, (np.ndarray, np.generic)):
+            info_dict[k] = info_dict[k].item()
+
+    # Write metadata info file
+    with open(info_file, 'w+') as f:
+        yaml.safe_dump(info_dict, f)
+
 
 def write_crowd_movies(sorted_index, config_data, filename_format, vid_parameters, clean_params, ordering, \
                        labels, label_uuids, max_syllable, max_examples, output_dir):
