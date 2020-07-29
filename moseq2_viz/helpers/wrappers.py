@@ -118,13 +118,14 @@ def plot_scalar_summary_wrapper(index_file, output_file, groupby='group', colors
 def plot_syllable_usages_wrapper(model_fit, index_file, output_file, sort=True, count='usage', group=None, max_syllable=40,
                                  fmt='o-', ordering=None, ctrl_group=None, exp_group=None, colors=None, figsize=(10, 5)):
     '''
-    Wrapper function to plot syllable usages.
+    Wrapper function to plot specified syllable statistic.
 
     Parameters
     ----------
     model_fit (str): path to trained model file.
     index_file (str): path to index file.
     output_file (str): filename for syllable usage graph.
+    stat (str): syllable statistic to plot: ['usage', 'speed', 'duration']
     sort (bool): sort syllables by usage.
     count (str): method to compute usages 'usage' or 'frames'.
     group (tuple, list, None): tuple or list of groups to separately model usages. (None to graph all groups)
@@ -143,136 +144,43 @@ def plot_syllable_usages_wrapper(model_fit, index_file, output_file, sort=True, 
     plt (pyplot figure): graph to show in Jupyter Notebook.
     '''
 
-    max_syllable += 1  # accounting for last syllable in list
+    # Edge case: Accounting for mutation sorting
+    max_syllable += 1
+
 
     # if the user passes model directory, merge model states by
     # minimum distance between them relative to first model in list
     if not os.path.exists(os.path.dirname(output_file)):
         os.makedirs(os.path.dirname(output_file))
+    compute_labels = False
+    if stat == 'speed':
+        # Load scalar Dataframe to compute syllable speeds
+        scalar_df = scalars_to_dataframe(sorted_index)
+        compute_labels = True
 
     if os.path.isdir(model_fit):
         model_data = merge_models(model_fit, 'p')
     else:
         model_data = parse_model_results(joblib.load(model_fit))
-
-    # if the user passes multiple groups, sort and plot against each other
-    # relabel by usage across the whole dataset, gather usages per session per group
-    index, sorted_index = parse_index(index_file)
-    df, _ = results_to_dataframe(model_data, sorted_index, max_syllable=max_syllable, sort=sort, count=count)
-
-    plt, lgd = plot_syll_stats_with_sem(df, ctrl_group=ctrl_group, exp_group=exp_group, colors=colors, groups=group,
-                                      fmt=fmt, ordering=ordering, stat='usage', max_sylls=max_syllable, figsize=figsize)
-    plt.savefig('{}.png'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
-    plt.savefig('{}.pdf'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
-
-    return plt
-
-def plot_syllable_durations_wrapper(model_fit, index_file, output_file, count='usage', max_syllable=40, sort=True, group=None,
-                                    ordering=None, ctrl_group=None, exp_group=None, colors=None, fmt='o-', figsize=(10, 5)):
-    '''
-    Wrapper function that plots syllable durations.
-
-    Parameters
-    ----------
-    model_fit (str): path to trained model file.
-    index_file (str): path to index file.
-    output_file (str): filename for syllable duration graph.
-    count (str): method to compute usages 'usage' or 'frames'.
-    max_syllable (int): maximum number of syllables to plot.
-    sort (bool): sort syllables by usage.
-    group (tuple, list, None): tuple or list of groups to separately model usages. (None to graph all groups)
-    ordering (list, range, str, None): order to list syllables. Default is None to graph syllables [0-max_syllable).
-     Setting ordering to "m" will graph mutated syllable usage difference between ctrl_group and exp_group.
-     None to graph default [0,max_syllable] in order. "durations" to plot descending order of duration values.
-    ctrl_group (str): Control group to graph when plotting mutation differences via setting ordering to 'm'.
-    exp_group (str): Experimental group to directly compare with control group.
-    colors (list): list of colors to serve as the sns palette in the scalar summary. If None, default colors are used.
-    fmt (str): scatter plot format. "o-" for line plot with vertices at corresponding usages. "o" for just points.
-    figsize (tuple): tuple value of length = 2, representing (columns x rows) of the plotted figure dimensions
-
-    Returns
-    -------
-    fig (pyplot figure): figure to graph in Jupyter Notebook.
-    '''
-
-    # if the user passes model directory, merge model states by
-    # minimum distance between them relative to first model in list
-    if not os.path.exists(os.path.dirname(output_file)):
-        os.makedirs(os.path.dirname(output_file))
-
-    if os.path.isdir(model_fit):
-        model_data = merge_models(model_fit, 'p')
-    else:
-        model_data = parse_model_results(joblib.load(model_fit))
-
-    max_syllable += 1  # accounting for last syllable in list
-
-    # if the user passes multiple groups, sort and plot against each other
-    # relabel by usage across the whole dataset, gather usages per session per group
-    index, sorted_index = parse_index(index_file)
-    df, _ = results_to_dataframe(model_data, sorted_index, max_syllable=max_syllable, sort=sort, count=count)
-    plt, lgd = plot_syll_stats_with_sem(df, ctrl_group=ctrl_group, exp_group=exp_group, colors=colors, groups=group,
-                                      ordering=ordering, fmt=fmt, stat='dur', max_sylls=max_syllable, figsize=figsize)
-
-    plt.savefig('{}.png'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
-    plt.savefig('{}.pdf'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
-
-    return plt
-
-def plot_syllable_speeds_wrapper(model_fit, index_file, output_file, group=None, ordering=None, colors=None,
-                                 ctrl_group=None, exp_group=None, count='usage', max_syllable=40, sort=True, fmt='o-', figsize=(10, 5)):
-    '''
-    Wrapper function that computes the average syllable speed by averaging the speed at all occurrences
-    of each syllable in [0, max_syllable) in each session. Then plots the results in the desired ordering.
-
-    Parameters
-    ----------
-    model_fit (str): path to trained model file.
-    index_file (str): path to index file.
-    output_file (str): filename for syllable speed graph.
-    group (tuple, list, None): tuple or list of groups to separately model usages. (None to graph all groups)
-    ordering (list, range, str, None): order to list syllables. Default is None to graph syllables [0-max_syllable).
-     Setting ordering to "m" will graph mutated syllable usage difference between ctrl_group and exp_group.
-     None to graph default [0,max_syllable] in order. "speeds" to plot descending order of speed values.
-    colors (list): list of colors to serve as the sns palette in the scalar summary. If None, default colors are used.
-    ctrl_group (str): Control group to graph when plotting mutation differences via setting ordering to 'm'.
-    exp_group (str): Experimental group to directly compare with control group.
-    max_syllable (int): maximum number of syllables to plot.
-    fmt (str): scatter plot format. "o-" for line plot with vertices at corresponding usages. "o" for just points.
-    figsize (tuple): tuple value of length = 2, representing (columns x rows) of the plotted figure dimensions
-
-    Returns
-    -------
-    fig (pyplot figure): figure to graph in Jupyter Notebook.
-    '''
-
-    if not os.path.exists(os.path.dirname(output_file)):
-        os.makedirs(os.path.dirname(output_file))
-
-    index, sorted_index = parse_index(index_file)
-    scalar_df = scalars_to_dataframe(sorted_index)
-
-    if os.path.isdir(model_fit):
-        model_data = merge_models(model_fit, 'p')
-    else:
-        model_data = parse_model_results(joblib.load(model_fit))
-
-    max_syllable += 1  # accounting for last syllable in list
-
+    # Compute a syllable summary Dataframe containing usage-based
+    # sorted/relabeled syllable usage and duration information from [0, max_syllable] inclusive
     df, label_df = results_to_dataframe(model_data, sorted_index, count=count,
-                                        max_syllable=max_syllable, sort=sort, compute_labels=True)
+                                        max_syllable=max_syllable, sort=sort, compute_labels=compute_labels)
+    if stat == 'speed':
+        # Compute each rodent's centroid speed in mm/s
+        scalar_df['centroid_speed_mm'] = compute_session_centroid_speeds(scalar_df)
 
-    scalar_df['centroid_speed_mm'] = compute_session_centroid_speeds(scalar_df)
+        # Compute the average rodent syllable velocity based on the corresponding centroid speed at each labeled frame
+        df = compute_mean_syll_speed(df, scalar_df, label_df, groups=group, max_sylls=max_syllable)
 
-    df = compute_mean_syll_speed(df, scalar_df, label_df, groups=group, max_sylls=max_syllable)
+    # Plot and save syllable stat plot
+    plt, lgd = plot_syll_stats_with_sem(df, ctrl_group=ctrl_group, exp_group=exp_group, colors=colors, groups=group,
+                                      fmt=fmt, ordering=ordering, stat=stat, max_sylls=max_syllable, figsize=figsize)
 
-    fig, lgd = plot_syll_stats_with_sem(df, ordering=ordering, fmt=fmt, stat='speed', max_sylls=max_syllable,
-                               groups=group, ctrl_group=ctrl_group, exp_group=exp_group, colors=colors, figsize=figsize)
+    plt.savefig('{}.png'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
+    plt.savefig('{}.pdf'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
-    fig.savefig('{}.png'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
-    fig.savefig('{}.pdf'.format(output_file), bbox_extra_artists=(lgd,), bbox_inches='tight')
-
-    return fig
+    return plt
 
 def plot_mean_group_position_pdf_wrapper(index_file, output_file):
     '''
