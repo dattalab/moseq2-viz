@@ -181,8 +181,6 @@ def write_crowd_movies(sorted_index, config_data, ordering, labels, label_uuids,
                       for i, crowd_matrix in tqdm(enumerate(crowd_matrices), total=config_data['max_syllable'],
                                                   desc='Writing Movies') if crowd_matrix is not None])
 
-
-
 def write_frames_preview(filename, frames=np.empty((0,)), threads=6,
                          fps=30, pixel_format='rgb24',
                          codec='h264', slices=24, slicecrc=1,

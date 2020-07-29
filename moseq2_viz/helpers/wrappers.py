@@ -29,13 +29,18 @@ from moseq2_viz.model.util import relabel_by_usage, parse_model_results,  merge_
 def wrapper_function_setup(function):
     '''
 
+    Decorator for all (but add_group) wrapper functions.
+    Function will read function name, and read model, index file and output file parameters
+    according to their caller's arg order.
+    Additionally, it will create any missing subdirectories for plotting functions.
+
     Parameters
     ----------
-    function
+    function (function): function to perform preprocessing for prior to its execution
 
     Returns
     -------
-
+    function (function): same function with an updated kwargs dictionary containing all required loaded data
     '''
 
     @wraps(function)
@@ -44,12 +49,15 @@ def wrapper_function_setup(function):
         caller = function.__name__
         model_fit, output_file = None, None
 
+        # Handle all scalar related functions
         if any(x in caller for x in ['scalar', 'pdf']):
             index_file, output_file = args[0], args[1]
 
+        # Handle plot syllable summary function
         elif 'stat' in caller:
             model_fit, index_file, output_file = args[0], args[1], args[2]
 
+        # Handle transition_graph and crowd_movie functions
         elif any(x in caller for x in ['crowd', 'transition']):
             index_file, model_fit = args[0], args[1]
             if 'transition' in caller:
@@ -71,6 +79,7 @@ def wrapper_function_setup(function):
             kwargs['index'] = index
             kwargs['sorted_index'] = sorted_index
 
+        # Load trained model data
         if model_fit != None:
             # If the user passes model directory, merge model states by
             # minimum distance between them relative to first model in list
@@ -125,6 +134,7 @@ def add_group_wrapper(index_file, config_data):
         else:
             hits = [re.search(v, meta[key]) is not None for meta in metadata]
 
+        # Updating index dict groups for each found session
         for uuid, hit in zip(h5_uuids, hits):
             position = h5_uuids.index(uuid)
             if hit:
@@ -159,6 +169,7 @@ def plot_scalar_summary_wrapper(index_file, output_file, groupby='group', colors
     (Only accessible through GUI API)
     '''
 
+    # Get loaded index dict via decorator
     sorted_index = kwargs['sorted_index']
 
     # Parse index dict files to return pandas DataFrame of all computed scalars from extraction step
@@ -209,7 +220,10 @@ def plot_syllable_stat_wrapper(model_fit, index_file, output_file, stat='usage',
     # Edge case: Accounting for mutation sorting
     max_syllable += 1
 
+    # Get loaded model via decorator
     model_data = kwargs['model_data']
+
+    # Get loaded index dict via decorator
     sorted_index = kwargs['sorted_index']
 
     compute_labels = False
@@ -255,6 +269,7 @@ def plot_mean_group_position_pdf_wrapper(index_file, output_file, **kwargs):
     fig (pyplot figure): figure to graph in Jupyter Notebook.
     '''
 
+    # Get loaded index dicts via decorator
     sorted_index = kwargs['sorted_index']
 
     # Load scalar dataframe to compute position PDF heatmap
@@ -287,6 +302,7 @@ def plot_verbose_pdfs_wrapper(index_file, output_file, **kwargs):
     fig (pyplot figure): figure to graph in Jupyter Notebook.
     '''
 
+    # Get loaded index dicts via decorator
     sorted_index = kwargs['sorted_index']
 
     # Load scalar dataframe to compute position PDF heatmap
@@ -320,7 +336,10 @@ def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_fil
     plt (pyplot figure): graph to show in Jupyter Notebook.
     '''
 
+    # Get loaded model via decorator
     model_data = kwargs['model_data']
+
+    # Get loaded index dicts via decorator
     index, sorted_index = kwargs['index'], kwargs['sorted_index']
 
     # Optionally load pygraphviz for transition graph layout configuration
@@ -346,18 +365,16 @@ def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_fil
         label_uuids = model_data['keys']
 
     # Loading modeled groups from index file by looking up their session's corresponding uuid
-    label_group = []
     if 'group' in index['files'][0].keys() and len(group) > 0:
-        label_group = [sorted_index['files'][uuid]['group'] if uuid in sorted_index['files'].keys() \
-                                                            else 'default' for uuid in label_uuids]
+        label_group = [sorted_index['files'][uuid]['group'] \
+                           if uuid in sorted_index['files'].keys() else 'default' for uuid in label_uuids]
     else:
         # If no index file is found, set session grouping as nameless default to plot a single transition graph
         label_group = [''] * len(model_data['labels'])
         group = list(set(label_group))
 
-    print('Computing transition matrices...')
     try:
-        # Compute Transition Matrices
+        # Compute and plot Transition Matrices
         plt = compute_and_graph_grouped_TMs(config_data, labels, label_group, group)
     except:
         print('Incorrectly inputted group, plotting all groups.')
@@ -391,9 +408,10 @@ def make_crowd_movies_wrapper(index_file, model_path, config_data, output_dir, *
     None
     '''
 
+    # Get loaded model via decorator
     model_fit = kwargs['model_data']
 
-    # Load index dictionary to read session uuids and their respective extraction paths
+    # Get loaded index dicts via decorator
     index, sorted_index = kwargs['index'], kwargs['sorted_index']
 
     # Get number of CPUs to optimize crowd movie creation and writing speed

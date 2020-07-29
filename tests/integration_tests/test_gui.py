@@ -49,6 +49,13 @@ class TestGUI(TestCase):
         add_group(tmp_yaml, key, value, group, exact, lowercase, negative)
 
         assert not os.path.samefile(index_path, tmp_yaml), "Index file was not updated"
+
+        value = ['012517']
+        group = ['test12']
+
+        add_group(tmp_yaml, key, value, group, exact, lowercase, negative)
+
+        assert not os.path.samefile(index_path, tmp_yaml), "Index file was not updated"
         os.remove(tmp_yaml)
 
     def test_plot_all_stats(self):

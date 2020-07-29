@@ -1083,9 +1083,12 @@ def retrieve_pcs_from_slices(slices, pca_scores, max_dur=60, min_dur=3,
     filter_dur = compose(lambda dur: (dur < max_dur) & (dur > min_dur),
                          lambda inds: inds[1] - inds[0],
                          get(0))
+
     filtered_slices = _gen_to_arr(filter(filter_dur, slices))
+
     # select random samples
     inds = np.random.randint(0, len(filtered_slices), size=max_samples)
+
     use_slices = filtered_slices[inds]
 
     syllable_matrix = np.zeros((len(use_slices), max_dur, npcs), 'float32')
