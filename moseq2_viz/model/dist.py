@@ -1,3 +1,9 @@
+'''
+
+Utility functions for estimating "behavioral distance" AKA model state similarity analysis.
+
+'''
+
 import warnings
 import numpy as np
 from copy import deepcopy

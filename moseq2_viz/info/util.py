@@ -1,3 +1,10 @@
+'''
+
+Utility functions for computing syllable usage entropy, and syllable transition entropy rate.
+These can be used for measuring modeling model performance and group separability.
+
+'''
+
 import numpy as np
 from moseq2_viz.model.util import get_syllable_statistics, get_transition_matrix, relabel_by_usage
 

@@ -1,3 +1,11 @@
+'''
+GUI front-end operations. This module contains all the functionality and configurable parameters
+users can alter to most accurately process their data.
+
+Note: These functions perform jupyter notebook specific pre-processing, loads in corresponding parameters from the
+CLI functions, then call the corresponding wrapper function with the given input parameters.
+'''
+
 import os
 import ruamel.yaml as yaml
 from .cli import plot_transition_graph

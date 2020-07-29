@@ -1,3 +1,9 @@
+'''
+
+Utility functions responsible for handling all scalar data-related operations.
+
+'''
+
 import os
 import h5py
 import warnings

@@ -1,3 +1,9 @@
+'''
+
+General utility functions to facilitate loading and organizing data.
+
+'''
+
 import re
 import os
 import h5py

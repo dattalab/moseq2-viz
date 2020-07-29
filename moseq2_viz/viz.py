@@ -1,3 +1,9 @@
+'''
+
+Visualization model containing all plotting functions and some dependent data pre-processing helper functions.
+
+'''
+
 import re
 import math
 import cv2
