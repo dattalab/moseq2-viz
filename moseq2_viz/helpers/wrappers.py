@@ -156,12 +156,18 @@ def plot_scalar_summary_wrapper(index_file, output_file, groupby='group', colors
     '''
     Wrapper function that plots scalar summary graphs.
 
+    Note: function is decorated with function performing initialization operations and saving
+    the results in the kwargs variable.
+
+    Decorator will retrieve the sorted_index dict.
+
     Parameters
     ----------
     index_file (str): path to index file.
     output_file (str): path to save graphs.
     groupby (str): scalar_df column to group sessions by when graphing scalar and position summaries
     colors (list): list of colors to serve as the sns palette in the scalar summary
+    kwargs (dict): dict containing index dicts from given index file path.
 
     Returns
     -------
@@ -193,6 +199,11 @@ def plot_syllable_stat_wrapper(model_fit, index_file, output_file, stat='usage',
     '''
     Wrapper function to plot specified syllable statistic.
 
+    Note: function is decorated with function performing initialization operations and saving
+    the results in the kwargs variable.
+
+    Decorator will retrieve the sorted_index dict and parse the model results into a single dict.
+
     Parameters
     ----------
     model_fit (str): path to trained model file.
@@ -211,6 +222,7 @@ def plot_syllable_stat_wrapper(model_fit, index_file, output_file, stat='usage',
     exp_group (str): Experimental group to directly compare with control group.
     colors (list): list of colors to serve as the sns palette in the scalar summary. If None, default colors are used.
     figsize (tuple): tuple value of length = 2, representing (columns x rows) of the plotted figure dimensions
+    kwargs (dict): dict containing loaded model data and index dicts
 
     Returns
     -------
@@ -258,11 +270,17 @@ def plot_mean_group_position_pdf_wrapper(index_file, output_file, **kwargs):
     Wrapper function that computes the PDF of the rodent's position throughout the respective sessions,
     and averages these values with respect to their groups to graph a mean position heatmap for each group.
 
+    Note: function is decorated with function performing initialization operations and saving
+    the results in the kwargs variable.
+
+    Decorator will retrieve the sorted_index dict.
+
     Parameters
     ----------
     index_file (str): path to index file.
     output_file (str): filename for the group heatmap graph.
     gui (bool): indicate whether GUI is plotting the graphs.
+    kwargs (dict): dict containing loaded index dict from given index file path
 
     Returns
     -------
@@ -292,10 +310,16 @@ def plot_verbose_pdfs_wrapper(index_file, output_file, **kwargs):
     Wrapper function that computes the PDF for the mouse position for each session in the index file.
     Will plot each session's heatmap with a "SessionName: Group"-like title.
 
+    Note: function is decorated with function performing initialization operations and saving
+    the results in the kwargs variable.
+
+    Decorator will retrieve the sorted_index dict.
+
     Parameters
     ----------
     index_file (str): path to index file.
     output_file (str): filename for the verbose heatmap graph.
+    kwargs (dict): dict containing loaded index dict from given index file path
 
     Returns
     -------
@@ -324,12 +348,18 @@ def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_fil
     '''
     Wrapper function to plot transition graphs.
 
+    Note: function is decorated with function performing initialization operations and saving
+    the results in the kwargs variable.
+
+    Decorator will retrieve the sorted_index dict and parse the model results into a single dict.
+
     Parameters
     ----------
     index_file (str): path to index file
     model_fit (str): path to trained model.
     config_data (dict): dictionary containing the user specified keys and values
     output_file (str): filename for syllable usage graph.
+    kwargs (dict): dict containing loaded model data and index dicts
 
     Returns
     -------
@@ -396,12 +426,18 @@ def make_crowd_movies_wrapper(index_file, model_path, config_data, output_dir, *
     Wrapper function to create crowd movie videos and write them to individual
     files depicting respective syllable labels.
 
+    Note: function is decorated with function performing initialization operations and saving
+    the results in the kwargs variable.
+
+    Decorator will retrieve the sorted_index dict and parse the model results into a single dict.
+
     Parameters
     ----------
     index_file (str): path to index file
     model_path (str): path to trained model.
     config_data (dict): dictionary containing the user specified keys and values
     output_dir (str): directory to store crowd movies in.
+    kwargs (dict): dict containing loaded model data and index dicts
 
     Returns
     -------
