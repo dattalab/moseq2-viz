@@ -606,7 +606,7 @@ def make_a_heatmap(position):
     return pdf
 
 
-def compute_all_pdf_data(scalar_df, normalize=False, centroid_vars=['centroid_x_mm', 'centroid_y_mm']):
+def compute_all_pdf_data(scalar_df, centroid_vars=['centroid_x_mm', 'centroid_y_mm']):
     '''
     Computes a position PDF for all sessions and returns the pdfs with corresponding lists of
      groups, session uuids, and subjectNames.
@@ -614,7 +614,6 @@ def compute_all_pdf_data(scalar_df, normalize=False, centroid_vars=['centroid_x_
     Parameters
     ----------
     scalar_df (pd.DataFrame): DataFrame containing all scalar data + uuid columns for all stacked sessions
-    normalize (bool): Indicates whether normalize the pdfs.
     centroid_vars (list): list of strings for column values to use when computing mouse position.
 
     Returns
@@ -640,8 +639,8 @@ def compute_all_pdf_data(scalar_df, normalize=False, centroid_vars=['centroid_x_
 
     clim_ = 0, pdfs[0].max()
 
-    if normalize:
-        return np.stack([p / p.sum() for p in pdfs]), groups, sessions, subjectNames
+    # Normalize PDFs
+    pdfs = np.stack([p / p.sum() for p in pdfs])
 
     return pdfs, groups, sessions, subjectNames
 

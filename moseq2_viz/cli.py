@@ -111,7 +111,7 @@ def plot_scalar_summary(index_file, output_file, colors):
 
 @cli.command(name='plot-group-position-heatmaps', help="Plots position heatmaps for each group in the index file")
 @click.argument('index-file', type=click.Path(exists=True, resolve_path=True))
-@click.option('--output-file', type=click.Path(), default=os.path.join(os.getcwd(), 'scalars'))
+@click.option('--output-file', type=click.Path(), default=os.path.join(os.getcwd(), 'group-heatmaps'))
 def plot_group_position_heatmaps(index_file, output_file):
 
     plot_mean_group_position_pdf_wrapper(index_file, output_file)
@@ -119,7 +119,7 @@ def plot_group_position_heatmaps(index_file, output_file):
 
 @cli.command(name='plot-verbose-position-heatmaps', help="Plots a position heatmap for each session in the index file.")
 @click.argument('index-file', type=click.Path(exists=True, resolve_path=True))
-@click.option('--output-file', type=click.Path(), default=os.path.join(os.getcwd(), 'scalars'))
+@click.option('--output-file', type=click.Path(), default=os.path.join(os.getcwd(), 'session-heatmaps'))
 def plot_verbose_position_heatmaps(index_file, output_file):
 
     plot_verbose_pdfs_wrapper(index_file, output_file)

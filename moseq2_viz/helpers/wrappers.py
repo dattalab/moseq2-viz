@@ -291,7 +291,7 @@ def plot_mean_group_position_pdf_wrapper(index_file, output_file):
     index, sorted_index = parse_index(index_file)
     scalar_df = scalars_to_dataframe(sorted_index)
 
-    pdfs, groups, sessions, subjectNames = compute_all_pdf_data(scalar_df, normalize=True)
+    pdfs, groups, sessions, subjectNames = compute_all_pdf_data(scalar_df)
 
     fig = plot_mean_group_heatmap(pdfs, groups)
 
