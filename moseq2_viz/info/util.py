@@ -24,26 +24,33 @@ def entropy(labels, truncate_syllable=40, smoothing=1.0,
     ent (list): list of entropy values for each syllable label.
     '''
 
+    # Compute relabeled usages
     labels, _ = relabel_by_usage(labels, count=relabel_by)
 
     ent = []
     for v in labels:
+        # Get usage for given syllable
         usages = get_syllable_statistics([v])[0]
 
+        # Truncate list to max number of included syllables
         syllables = np.array(list(usages.keys()))
         truncate_point = np.where(syllables == truncate_syllable)[0]
 
+        # Get syllable truncate index if it wasn't found
         if truncate_point is None or len(truncate_point) != 1:
             truncate_point = len(syllables)
         else:
             truncate_point = truncate_point[0]
 
+        # truncate syllable list
         syllables = syllables[:truncate_point]
 
+        # Compute average usage
         usages = np.array(list(usages.values()), dtype='float')
         usages = usages[:truncate_point] + smoothing
         usages /= usages.sum()
 
+        # Compute entropy and append to syllable entropy list
         ent.append(-np.sum(usages * np.log2(usages)))
 
     return ent
@@ -72,15 +79,19 @@ def entropy_rate(labels, truncate_syllable=40, normalize='bigram',
     ent (list): list of entropy rates per syllable label
     '''
 
+    # Compute relabeled usages
     labels, _ = relabel_by_usage(labels, count=relabel_by)
 
     ent = []
     for v in labels:
-
+        # Get usage for given syllable
         usages = get_syllable_statistics([v])[0]
         syllables = np.array(list(usages.keys()))
+
+        # Truncate list to max number of included syllables
         truncate_point = np.where(syllables == truncate_syllable)[0]
 
+        # Get syllable truncate index if it wasn't found
         if truncate_point is None or len(truncate_point) != 1:
             truncate_point = len(syllables)
         else:
@@ -89,17 +100,23 @@ def entropy_rate(labels, truncate_syllable=40, normalize='bigram',
         syllables = syllables[:truncate_point]
 
         usages = np.array(list(usages.values()), dtype='float')
+
+        # Truncate syllable usages
         usages = usages[:truncate_point] + smoothing
         usages /= usages.sum()
 
+        # Compute transition matrix from given syllable
         tm = get_transition_matrix([v],
                                    max_syllable=100,
                                    normalize='none',
                                    smoothing=0.0,
 
                                    disable_output=True)[0] + tm_smoothing
+
+        # Truncate transition matrix
         tm = tm[:truncate_point, :truncate_point]
 
+        # Normalize TM
         if normalize == 'bigram':
             tm /= tm.sum()
         elif normalize == 'rows':
@@ -107,6 +124,7 @@ def entropy_rate(labels, truncate_syllable=40, normalize='bigram',
         elif normalize == 'columns':
             tm /= tm.sum(axis=0, keepdims=True)
 
+        # Compute entropy rate and append to syllable entropy rate
         ent.append(-np.sum(usages[:, None] * tm * np.log2(tm)))
 
     return ent
