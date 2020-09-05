@@ -455,10 +455,10 @@ def make_crowd_movies_wrapper(index_file, model_path, config_data, output_dir):
     if config_data['separate_by'] == 'groups':
         # Get the groups to separate the arrays by
         groups = list(set(model_fit['metadata']['groups']))
-        group_keys = {g.lower():[] for g in groups}
+        group_keys = {g:[] for g in groups}
 
         for i, v in enumerate(sorted_index['files'].values()):
-            group_keys[v['group'].lower()].append(i)
+            group_keys[v['group']].append(i)
 
         ## Filter these three arrays to get desired crowd movie source
         for k, v in group_keys.items():

@@ -1,4 +1,5 @@
 import itertools
+import ipywidgets as widgets
 from bokeh.models.tickers import FixedTicker
 from bokeh.palettes import Dark2_5 as palette
 
@@ -194,17 +195,21 @@ def display_crowd_movies(divs):
 
     Returns
     -------
-
     '''
 
     # Set HTML formats
     movie_table = '''
                     <head>
                     <style>
+                        .output {
+                            display: contents;
+                            height: auto;
+                        }
                         .row {
                             display: flex;
                             flex-wrap: wrap;
                             vertical-align: center;
+                            width: 900px;
                             text-align: center;
                         }
         
@@ -218,33 +223,37 @@ def display_crowd_movies(divs):
                         }
                     </style>
                     </head>
-                    <div class="row"; style="background-color:#ffffff; width:750px">
+                    <div class="row"; style="background-color:#ffffff; height:auto;">
                   '''
+
     # Create div grid
     for i, div in enumerate(divs):
         if (i % 2 == 0) and i > 0:
             # make a new row
             movie_table += '</div>'
             col = f'''
-                      <div class="row"; style="background-color:#ffffff; width:750px">
-                          <div class="column">
+                      <div class="row"; style="background-color:#ffffff; height:auto;">
+                          <div class="column"; style="height:auto;">
                               {div}
                           </div>
                     '''
         else:
             # put movie in column
             col = f'''
-                      <div class="column">
+                      <div class="column"; style="height:auto;">
                           {div}
                       </div>
                     '''
         movie_table += col
-
     # Close last div
     movie_table += '</div>'
 
-    div2 = Div(text=movie_table)
+    div2 = Div(text=movie_table, height_policy='auto')
 
     # Display
-    display(widget_box)
-    show(div2)
+    div_out = widgets.Output(height='auto')
+    with div_out:
+        show(div2)
+
+    display(widget_box, div_out)
+    #print(movie_table)

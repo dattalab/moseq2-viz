@@ -321,17 +321,19 @@ class CrowdMovieComparison:
         Parameters
         ----------
         config_data (dict): Configuration parameters for creating crowd movies.
-        index_path (str): Path to index file with paths to all the extracted sessions
-        model_path (str): Path to trained model containing syllable labels.
-        syll_info_path (str): Path to syllable information file containing syllable labels
+        index_path (str): Path to loaded index file.
+        model_path (str): Path to loaded model.
+        syll_info (dict): Dict object containing labeled syllable information.
         output_dir (str): Path to directory to store crowd movies.
         '''
 
         self.config_data = config_data
         self.index_path = index_path
         self.model_path = model_path
-        self.syll_info_path = syll_info
+        self.syll_info = syll_info
         self.output_dir = output_dir
+        self.max_sylls = config_data['max_syllable']
+        self.session_dict = {str(i): {'session_info': {}} for i in range(self.max_sylls)}
 
     def show_session_select(self, change):
         '''
@@ -369,6 +371,66 @@ class CrowdMovieComparison:
 
         self.config_data['session_names'] = list(session_sel.value)
 
+    def get_session_mean_syllable_info_df(self, model_fit, sorted_index):
+        '''
+        Populates session-based syllable information dict with usage and scalar information.
+
+        Parameters
+        ----------
+        model_fit (dict): dict containing trained model syllable data
+        sorted_index (dict): sorted index file containing paths to extracted session h5s
+
+        Returns
+        -------
+        '''
+
+        # Load scalar Dataframe to compute syllable speeds
+        scalar_df = scalars_to_dataframe(sorted_index)
+
+        # Compute a syllable summary Dataframe containing usage-based
+        # sorted/relabeled syllable usage and duration information from [0, max_syllable) inclusive
+        df, label_df = results_to_dataframe(model_fit, sorted_index, count='usage',
+                                            max_syllable=self.max_sylls, sort=True, compute_labels=True)
+
+        # Compute syllable speed
+        scalar_df['centroid_speed_mm'] = compute_session_centroid_speeds(scalar_df)
+        df = compute_mean_syll_speed(df, scalar_df, label_df, groups=None, max_sylls=self.max_sylls)
+
+        # Get grouped DataFrame
+        self.session_df = df.groupby(('SessionName', 'syllable'), as_index=False).mean()
+
+    def get_selected_session_syllable_info(self, sel_sessions):
+        '''
+
+        Prepares dict of session-based syllable information to display.
+
+        Parameters
+        ----------
+        sel_sessions (list): list of selected session names.
+
+        Returns
+        -------
+        '''
+
+        # Get array of grouped syllable info
+        session_dicts = []
+        for sess in sel_sessions:
+            session_dict = {
+                sess: self.session_df[self.session_df['SessionName'] == sess].drop('SessionName', axis=1).reset_index(
+                    drop=True).to_dict()}
+            session_dicts.append(session_dict)
+
+        # Update syllable data with session info
+        for sd in session_dicts:
+            session_name = list(sd.keys())[0]
+            for syll in range(self.max_sylls):
+                self.session_dict[str(syll)]['session_info'][session_name] = {
+                    'usage': sd[session_name]['usage'][syll],
+                    'speed': sd[session_name]['speed'][syll],
+                    'duration': sd[session_name]['duration'][syll]
+                }
+
+
     def crowd_movie_preview(self, config_data, syllable, groupby, sessions, nexamples):
         '''
         Helper function that triggers the crowd_movie_wrapper function and creates the HTML
@@ -385,7 +447,6 @@ class CrowdMovieComparison:
 
         Returns
         -------
-
         '''
 
         # Update current config data with widget values
@@ -396,17 +457,39 @@ class CrowdMovieComparison:
         path_dict = make_crowd_movies_wrapper(self.index_path, self.model_path, self.config_data, self.output_dir)
         clear_output()
 
-        # Create video divs
+        # Get group info based on selected DropDownMenu item
+        if groupby == 'SessionName':
+            self.get_selected_session_syllable_info(sessions)
+            syll_dict = self.session_dict[str(syll_select.index)]['session_info']
+        else:
+            syll_dict = self.syll_info[str(syll_select.index)]['group_info']
+
+        # Create video divs including syllable metadata
         divs = []
         for group_name, cm_path in path_dict.items():
-            group_txt = f'''
+            group_txt = '''
                 <h2>{group_name}</h2>
                 <video
-                    src="{cm_path[0]}"; alt="{cm_path[0]}"; height="350"; width="350"; preload="true";
+                    src="{src}"; alt="{alt}"; height="350"; width="350"; preload="true";
                     style="float: center; type: "video/mp4"; margin: 0px 10px 10px 0px;
                     border="2"; autoplay controls loop>
                 </video>
-            '''
+                <table style="display: inline-block;">
+                    <tr style="text-align:center;">
+                        <th> Usage: </th>
+                        <th>{usage:.3f}</th>
+                    </tr>
+                    <tr>
+                        <th> Speed: </th>
+                        <th>{speed:.3f} mm/s</th>
+                    </tr>
+                    <tr>
+                        <th> Duration: </th>
+                        <th>{duration:.3f} ms</th>
+                    </tr>
+                </table>
+            '''.format(group_name=group_name, usage=syll_dict[group_name]['usage'], speed=syll_dict[group_name]['speed'],
+                       duration=syll_dict[group_name]['duration'], src=cm_path[0], alt=cm_path[0])
 
             divs.append(group_txt)
 
