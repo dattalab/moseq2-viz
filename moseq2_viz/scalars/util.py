@@ -410,6 +410,37 @@ def remove_nans_from_labels(idx, labels):
 
     return labels[~np.isnan(idx)]
 
+def compute_mouse_dist_to_center(roi, centroid_x_px, centroid_y_px):
+    '''
+    Given the session's ROI shape and the frame-by-frame (x,y) pixel centroid location
+     to compute the mouse's relative distance to the center of the bucket.
+
+    Parameters
+    ----------
+    roi (tuple): Tuple of session's arena dimensions.
+    centroid_x_px (1D np.array): x-coordinate of the mouse centroid throughout the recording
+    centroid_y_px (1D np.array): y-coordinate of the mouse centroid throughout the recording
+
+    Returns
+    -------
+    dist_to_center (1D np.array): array of normalized mouse centroid distance to the bucket center.
+    '''
+
+    # Get (x,y) bucket center coordinate
+    xmin, xmax = 0, roi[0]
+    center_x = (xmax - xmin) / 2.0 + xmin
+    ymin, ymax = 0, roi[1]
+    center_y = (ymax - ymin) / 2.0 + ymin
+
+    # Get normalized (x,y) distances to bucket center throughout the session recording.
+    norm_x = centroid_x_px - center_x
+    norm_x /= (center_x - xmin)
+
+    norm_y = centroid_y_px - center_y
+    norm_y /= (center_y - ymin)
+
+    # Compute distance to center
+    return np.hypot(norm_x, norm_y)
 
 def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'SubjectName', 'StartTime'],
                          include_model=None, disable_output=False, include_feedback=None, force_conversion=True):
@@ -440,10 +471,14 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
         uuids = list(files.keys())
         # use dset from first animal to generate a list of scalars
         dset = h5_to_dict(h5_filepath_from_sorted(files[uuids[0]]), path='scalars')
+        roi = h5_to_dict(h5_filepath_from_sorted(files[uuids[0]]), path='metadata/extraction/roi')['roi'].shape
+        dset['dist_to_center_px'] = compute_mouse_dist_to_center(roi, dset['centroid_x_px'], dset['centroid_y_px'])
     except:
         uuids = [f['uuid'] for f in index['files']]
         # use dset from first animal to generate a list of scalars
         dset = h5_to_dict(h5_filepath_from_sorted(files[0]), path='scalars')
+        roi = h5_to_dict(h5_filepath_from_sorted(files[0]), path='metadata/extraction/roi')['roi'].shape
+        dset['dist_to_center_px'] = compute_mouse_dist_to_center(roi, dset['centroid_x_px'], dset['centroid_y_px'])
 
     # only convert if the dataset is legacy and conversion is forced
     if is_legacy(dset) and force_conversion:
@@ -507,6 +542,9 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
         pth = h5_filepath_from_sorted(v)
         dset = h5_to_dict(pth, 'scalars')
 
+        roi = h5_to_dict(pth, path='metadata/extraction/roi')['roi'].shape
+        dset['dist_to_center_px'] = compute_mouse_dist_to_center(roi, dset['centroid_x_px'], dset['centroid_y_px'])
+
         # get extraction parameters for this h5 file
         dct = read_yaml(v['path'][1])
         parameters = dct['parameters']
@@ -527,7 +565,7 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
             try:
                 timestamps = get_timestamps_from_h5(pth)
                 scalar_dict['timestamp'] = timestamps.astype('int32')
-            except: #h5 file path exception, maybe Attribute or KeyError
+            except:
                 warnings.warn(f'timestamps for {pth} were not found')
                 warnings.warn('This could be due to a missing/incorrectly named timestamp file in that session directory.')
                 warnings.warn('If the file does exist, ensure it has the correct name/location and re-extract the session.')
@@ -689,7 +727,6 @@ def compute_mean_syll_scalar(complete_df, scalar_df, label_df, scalar='centroid_
     -------
     complete_df (pd.DataFrame): updated input dataframe with a speed value for each syllable merge in as a new column.
     '''
-
     warnings.filterwarnings('ignore')
 
     lbl_df = label_df.T

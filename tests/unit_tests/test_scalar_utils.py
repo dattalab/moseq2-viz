@@ -229,7 +229,7 @@ class TestScalarUtils(TestCase):
         df_cols = ['angle', 'area_mm', 'area_px', 'centroid_x_mm', 'centroid_x_px',
        'centroid_y_mm', 'centroid_y_px', 'height_ave_mm', 'length_mm',
        'length_px', 'velocity_2d_mm', 'velocity_2d_px', 'velocity_3d_mm',
-       'velocity_3d_px', 'velocity_theta', 'width_mm', 'width_px',
+       'velocity_3d_px', 'velocity_theta', 'width_mm', 'width_px', 'dist_to_center_px',
        'SessionName', 'SubjectName', 'StartTime', 'group', 'uuid']
 
         total_frames = 1800
