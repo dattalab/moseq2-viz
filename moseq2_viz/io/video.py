@@ -18,6 +18,44 @@ from moseq2_viz.viz import make_crowd_matrix
 from moseq2_viz.util import check_video_parameters
 from moseq2_viz.model.util import get_syllable_slices
 
+def get_video_info(filename):
+    '''
+
+    Get dimensions of data compressed using ffv1, along with duration via ffmpeg.
+
+    Parameters
+    ----------
+    filename (string): name of file
+
+    Returns
+    -------
+    (dict): dictionary containing video file metadata
+    '''
+
+    command = ['ffprobe',
+               '-v', 'fatal',
+               '-show_entries',
+               'stream=width,height,r_frame_rate,nb_frames',
+               '-of',
+               'default=noprint_wrappers=1:nokey=1',
+               filename,
+               '-sexagesimal']
+
+    ffmpeg = subprocess.Popen(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    out, err = ffmpeg.communicate()
+
+    if(err):
+        print(err)
+    out = out.decode().split('\n')
+    try:
+        return {'file': filename,
+            'dims': (int(float(out[0])), int(float(out[1]))),
+            'fps': float(out[2].split('/')[0])/float(out[2].split('/')[1]),
+            'nframes': int(out[3])}
+    except:
+        print('Could not process this video extension:', filename)
+        return {}
+
 def write_crowd_movie_info_file(model_path, model_fit, index_file, output_dir):
     '''
     Creates an info.yaml file in the crowd movie directory that holds model training parameters.

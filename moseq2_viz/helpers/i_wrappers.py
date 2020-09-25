@@ -4,12 +4,19 @@ Wrapper functions for all the interactive functionality in moseq2-viz.
 
 '''
 
+import os
 import qgrid
+import shutil
+import joblib
+import numpy as np
 import pandas as pd
 import ruamel.yaml as yaml
-from IPython.display import display
+import ipywidgets as widgets
 from moseq2_viz.util import index_to_dataframe
+from IPython.display import display, clear_output
+from moseq2_viz.interactive.controller import SyllableLabeler
 from moseq2_viz.interactive.widgets import GroupSettingWidgets
+from moseq2_viz.model.util import relabel_by_usage, get_syllable_usages, parse_model_results
 
 def interactive_group_setting_wrapper(index_filepath):
     '''
@@ -97,3 +104,71 @@ def interactive_group_setting_wrapper(index_filepath):
 
     index_grid.update_index_button.on_click(update_clicked)
     index_grid.save_button.on_click(update_table)
+
+def interactive_syllable_labeler_wrapper(model_path, config_file, index_file, crowd_movie_dir, output_file, max_syllables=None, n_explained=90):
+    '''
+    Wrapper function to launch a syllable crowd movie preview and interactive labeling application.
+    Parameters
+    ----------
+    model_path (str): Path to trained model.
+    crowd_movie_dir (str): Path to crowd movie directory
+    output_file (str): Path to syllable label information file
+    max_syllables (int): Maximum number of syllables to preview and label.
+    Returns
+    -------
+    '''
+
+    # Load the config file
+    with open(config_file, 'r') as f:
+        config_data = yaml.safe_load(f)
+
+    # Copy index file to modeling session directory
+    modeling_session_dir = os.path.dirname(model_path)
+    new_index_path = os.path.join(modeling_session_dir, os.path.basename(index_file))
+    shutil.copy2(index_file, new_index_path)
+
+    # Load the model
+    model = parse_model_results(joblib.load(model_path))
+
+    # Compute the sorted labels
+    model['labels'] = relabel_by_usage(model['labels'], count='usage')[0]
+
+    # Get Maximum number of syllables to include
+    if max_syllables == None:
+        syllable_usages = get_syllable_usages(model, 'usage')
+        cumulative_explanation = 100 * np.cumsum(syllable_usages)
+        max_sylls = np.argwhere(cumulative_explanation >= n_explained)[0][0]
+        print(f'Number of syllables explaining {n_explained}% variance: {max_sylls}')
+    else:
+        max_sylls = max_syllables
+
+    # Make initial syllable information dict
+    labeler = SyllableLabeler(model_fit=model, index_file=index_file, max_sylls=max_sylls, save_path=output_file)
+
+    # Populate syllable info dict with relevant syllable information
+    labeler.get_crowd_movie_paths(index_file, model_path, config_data, crowd_movie_dir)
+    labeler.get_mean_syllable_info()
+
+    # Set the syllable dropdown options
+    labeler.syll_select.options = labeler.syll_info
+
+    # Launch and display interactive API
+    output = widgets.interactive_output(labeler.interactive_syllable_labeler, {'syllables': labeler.syll_select})
+    display(labeler.syll_select, output)
+
+    def on_syll_change(change):
+        '''
+        Callback function for when user selects a different syllable number
+        from the Dropdown menu
+        Parameters
+        ----------
+        change (ipywidget DropDown select event): User changes current value of DropDownMenu
+        Returns
+        -------
+        '''
+
+        clear_output()
+        display(labeler.syll_select, output)
+
+    # Update view when user selects new syllable from DropDownMenu
+    output.observe(on_syll_change, names='value')
