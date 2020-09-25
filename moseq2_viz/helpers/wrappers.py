@@ -5,30 +5,22 @@ Each wrapper function executes the functionality from end-to-end given it's depe
 '''
 
 import os
-import re
 import h5py
 import shutil
 import psutil
 import joblib
-import numpy as np
 from sys import platform
 import ruamel.yaml as yaml
 from tqdm.auto import tqdm
-import ipywidgets as widgets
 from moseq2_viz.util import parse_index
-from IPython.display import display, clear_output
-from moseq2_viz.interactive.controller import SyllableLabeler
 from moseq2_viz.io.video import write_crowd_movies, write_crowd_movie_info_file
-from moseq2_viz.interactive.widgets import syll_select, next_button, prev_button, set_button, \
-                                            syll_info_lbl, info_boxes
-from moseq2_viz.scalars.util import scalars_to_dataframe, compute_mean_syll_speed, compute_all_pdf_data, \
-                            compute_session_centroid_speeds, compute_kl_divergences
-from moseq2_viz.viz import (plot_syll_stats_with_sem, scalar_plot, position_plot,
-                            plot_mean_group_heatmap, plot_verbose_heatmap, plot_kl_divergences, \
-                            plot_explained_behavior, save_fig)
-from moseq2_viz.util import (recursive_find_h5s, h5_to_dict, clean_dict)
-from moseq2_viz.model.util import (relabel_by_usage, get_syllable_usages, parse_model_results, merge_models,
-                                   results_to_dataframe, compute_and_graph_grouped_TMs)
+from moseq2_viz.util import (recursive_find_h5s, h5_to_dict, clean_dict, get_index_hits)
+from moseq2_viz.model.trans_graph import get_trans_graph_groups, compute_and_graph_grouped_TMs
+from moseq2_viz.scalars.util import scalars_to_dataframe, compute_mean_syll_scalar, compute_all_pdf_data, \
+                            compute_session_centroid_speeds
+from moseq2_viz.viz import (plot_syll_stats_with_sem, scalar_plot, position_plot, plot_mean_group_heatmap,
+                            plot_verbose_heatmap, save_fig)
+from moseq2_viz.model.util import (relabel_by_usage, parse_model_results, merge_models, results_to_dataframe)
 
 def init_wrapper_function(index_file=None, model_fit=None, output_dir=None, output_file=None):
     '''
@@ -110,15 +102,11 @@ def add_group_wrapper(index_file, config_data):
     for v in value:
         if config_data['exact']:
             v = r'\b{}\b'.format(v)
-        if config_data['lowercase'] and config_data['negative']:
-            hits = [re.search(v, meta[key].lower()) is None for meta in metadata]
-        elif config_data['lowercase']:
-            hits = [re.search(v, meta[key].lower()) is not None for meta in metadata]
-        elif config_data['negative']:
-            hits = [re.search(v, meta[key]) is None for meta in metadata]
-        else:
-            hits = [re.search(v, meta[key]) is not None for meta in metadata]
 
+        # Get matched keys
+        hits = get_index_hits(config_data, metadata, key, v)
+
+        # Update index dict with inputted group values
         for uuid, hit in zip(h5_uuids, hits):
             position = h5_uuids.index(uuid)
             if hit:
@@ -135,77 +123,6 @@ def add_group_wrapper(index_file, config_data):
         raise Exception
 
     print('Group(s) added successfully.')
-
-def interactive_syllable_labeler_wrapper(model_path, index_file, crowd_movie_dir, output_file, max_syllables=None):
-    '''
-    Wrapper function to launch a syllable crowd movie preview and interactive labeling application.
-
-    Parameters
-    ----------
-    model_path (str): Path to trained model.
-    crowd_movie_dir (str): Path to crowd movie directory
-    output_file (str): Path to syllable label information file
-    max_syllables (int): Maximum number of syllables to preview and label.
-
-    Returns
-    -------
-    '''
-
-    # Load the model
-    model = parse_model_results(joblib.load(model_path))
-
-    # Compute the sorted labels
-    model['labels'] = relabel_by_usage(model['labels'], count='usage')[0]
-
-    # Get Maximum number of syllables to include
-    if max_syllables == None:
-        syllable_usages = get_syllable_usages(model, 'usage')
-        cumulative_explanation = 100 * np.cumsum(syllable_usages)
-        max_sylls = np.argwhere(cumulative_explanation >= 90)[0][0]
-    else:
-        max_sylls = max_syllables
-
-    # Make initial syllable information dict
-    labeler = SyllableLabeler(model_fit=model, index_file=index_file, max_sylls=max_sylls, save_path=output_file)
-
-    # Populate syllable info dict with relevant syllable information
-    labeler.get_crowd_movie_paths(crowd_movie_dir)
-    labeler.get_mean_syllable_info()
-
-    syll_select.options = labeler.syll_info
-
-    # Dynamically generate info box sections for grouped syllable info
-    for group in labeler.groups:
-        group_info = labeler.syll_info[str(syll_select.index)]['group_info'][group]
-        info_boxes.children += (labeler.get_group_info_widgets(group, group_info),)
-
-    # Launch and display interactive API
-    output = widgets.interactive_output(labeler.interactive_syllable_labeler, {'syllables': syll_select})
-    display(syll_select, output)
-
-    def on_syll_change(change):
-        '''
-        Callback function for when user selects a different syllable number
-        from the Dropdown menu
-
-        Parameters
-        ----------
-        change (ipywidget DropDown select event): User changes current value of DropDownMenu
-
-        Returns
-        -------
-        '''
-
-        clear_output()
-        display(syll_select, output)
-
-    # Update view when user selects new syllable from DropDownMenu
-    output.observe(on_syll_change, names='value')
-
-    # Initialize button callbacks
-    next_button.on_click(labeler.on_next)
-    prev_button.on_click(labeler.on_prev)
-    set_button.on_click(labeler.on_set)
 
 def plot_scalar_summary_wrapper(index_file, output_file, groupby='group', colors=None):
     '''
@@ -299,7 +216,7 @@ def plot_syllable_stat_wrapper(model_fit, index_file, output_file, stat='usage',
         scalar_df['centroid_speed_mm'] = compute_session_centroid_speeds(scalar_df)
 
         # Compute the average rodent syllable velocity based on the corresponding centroid speed at each labeled frame
-        df = compute_mean_syll_speed(df, scalar_df, label_df, groups=group, max_sylls=max_syllable)
+        df = compute_mean_syll_scalar(df, scalar_df, label_df, groups=group, max_sylls=max_syllable)
 
     # Plot and save syllable stat plot
     plt, lgd = plot_syll_stats_with_sem(df, ctrl_group=ctrl_group, exp_group=exp_group, colors=colors, groups=group,
@@ -426,19 +343,7 @@ def plot_transition_graph_wrapper(index_file, model_fit, config_data, output_fil
         labels = relabel_by_usage(labels, count=config_data['count'])[0]
 
     # Get modeled session uuids to compute group-mean transition graph for
-    if 'train_list' in model_data.keys():
-        label_uuids = model_data['train_list']
-    else:
-        label_uuids = model_data['keys']
-
-    # Loading modeled groups from index file by looking up their session's corresponding uuid
-    if 'group' in index['files'][0].keys() and len(group) > 0:
-        label_group = [sorted_index['files'][uuid]['group'] \
-                           if uuid in sorted_index['files'].keys() else '' for uuid in label_uuids]
-    else:
-        # If no index file is found, set session grouping as nameless default to plot a single transition graph
-        label_group = [''] * len(model_data['labels'])
-        group = list(set(label_group))
+    group, label_group, label_uuids = get_trans_graph_groups(model_data, index, sorted_index)
 
     print('Computing transition matrices...')
     try:
@@ -522,66 +427,6 @@ def make_crowd_movies_wrapper(index_file, model_path, config_data, output_dir):
 
     # Write movies
     write_crowd_movies(sorted_index, config_data, ordering, labels, label_uuids, output_dir)
-
-def plot_kl_divergences_wrapper(index_file, output_file, oob=False):
-    '''
-    Wrapper function that computes the KL Divergence for the mouse PDF for each session in the index file.
-    Will plot KL divergence against session number
-
-    Parameters
-    ----------
-    index_file (str): path to index file.
-    output_file (str): filename for the verbose heatmap graph.
-    gui (bool): indicate whether GUI is plotting the graphs.
-
-    Returns
-    -------
-    fig (pyplot figure): figure to graph in Jupyter Notebook.
-    outliers (pd.Dataframe): dataframe of outlier sessions
-    '''
-
-    # Get loaded index dicts via decorator
-    index, sorted_index, _ = init_wrapper_function(index_file, output_file=output_file)
-
-    scalar_df = scalars_to_dataframe(sorted_index)
-
-    pdfs, groups, sessions, subjectNames = compute_all_pdf_data(scalar_df)
-
-    kl_divergences = compute_kl_divergences(pdfs, groups, sessions, subjectNames,oob=oob)
-    fig, outliers = plot_kl_divergences(kl_divergences)
-
-    fig.savefig('{}.png'.format(output_file))
-    fig.savefig('{}.pdf'.format(output_file))
-
-    return fig, outliers
-
-def plot_explained_behavior_wrapper(model_fit, output_file, count='usage', figsize=(10,5)):
-    '''
-    Wrapper function to plot percent explained behavior from syllables.
-
-    Parameters
-    ----------
-    model_fit (str): path to trained model file.
-    output_file (str): filename for syllable usage graph.
-    figsize (tuple): tuple value of length = 2, representing (columns x rows) of the plotted figure dimensions
-    count (str): method to compute usages 'usage' or 'frames'.
-
-    Returns
-    -------
-    plt (pyplot figure): graph to show in Jupyter Notebook.
-    '''
-
-    # Load index file and model data
-    _, _, model_data = init_wrapper_function(model_fit=model_fit, output_file=output_file)
-
-    syllable_usages = get_syllable_usages(model_data, count)
-
-    fig = plot_explained_behavior(syllable_usages, count=count, figsize=figsize)
-
-    fig.savefig('{}.png'.format(output_file))
-    fig.savefig('{}.pdf'.format(output_file))
-
-    return fig
 
 def copy_h5_metadata_to_yaml_wrapper(input_dir, h5_metadata_path):
     '''

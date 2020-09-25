@@ -7,7 +7,6 @@ Utility functions specifically responsible for handling model data during pre an
 import os
 import h5py
 import glob
-import tqdm
 import joblib
 import warnings
 import numpy as np
@@ -21,8 +20,8 @@ from os.path import join, basename, dirname
 from typing import Iterator, Any, Dict, Union
 from collections import defaultdict, OrderedDict
 from scipy.optimize import linear_sum_assignment
-from moseq2_viz.viz import graph_transition_matrix
 from moseq2_viz.util import np_cache, h5_to_dict, star
+from moseq2_viz.model.trans_graph import _get_transitions
 from cytoolz import curry, valmap, compose, complement, itemmap, concat
 
 def merge_models(model_dir, ext='p',count='usage'):
@@ -93,69 +92,7 @@ def merge_models(model_dir, ext='p',count='usage'):
 
     return model_data
 
-def compute_and_graph_grouped_TMs(config_data, labels, label_group, group):
-    '''
-    Convenience function to compute a transition matrix for each given group.
-    Function will also graph the computed transition matrices, then return the open figure object to be saved.
 
-    Parameters
-    ----------
-    config_data (dict): configuration dictionary containing graphing parameters
-    labels (list): list of 1D numpy arrays containing syllable labels per frame for every included session
-    label_group (list): list of corresponding group names to plot transition aggregated transition plots
-    group (list): unique list of groups to plot
-
-    Returns
-    -------
-    plt (pyplot.Figure): open transition graph figure to save
-    '''
-
-    trans_mats = []
-    usages = []
-
-    # Computing transition matrices for each given group
-    for plt_group in group:
-        use_labels = [lbl for lbl, grp in zip(labels, label_group) if grp == plt_group]
-        trans_mats.append(get_transition_matrix(use_labels, normalize=config_data['normalize'], combine=True,
-                                                max_syllable=config_data['max_syllable']))
-
-        # Getting usage information for node scaling
-        usages.append(get_syllable_statistics(use_labels)[0])
-
-    # Option to not scale node sizes proportional to the syllable usage.
-    if not config_data['scale_node_by_usage']:
-        usages = None
-
-    print('Creating plot...')
-    plt, _, _ = graph_transition_matrix(trans_mats,
-                                        **config_data,
-                                        usages=usages,
-                                        groups=group,
-                                        headless=True)
-
-    return plt
-
-def _get_transitions(label_sequence):
-    '''
-    Computes labels switch to another label. Throws out the first state (usually
-    labeled as -5).
-
-    Parameters
-    ----------
-    label_sequence (tuple): a tuple of syllable transitions and their indices
-
-    Returns
-    -------
-
-    '''
-
-    arr = deepcopy(label_sequence)
-
-    # get syllable transition locations
-    locs = np.where(arr[1:] != arr[:-1])[0] + 1
-    transitions = arr[locs]
-
-    return transitions, locs
 
 
 def _whiten_all(pca_scores: Dict[str, np.ndarray], center=True):
@@ -189,75 +126,6 @@ def _whiten_all(pca_scores: Dict[str, np.ndarray], center=True):
 
     return whitened_scores
 
-
-# per https://gist.github.com/tg12/d7efa579ceee4afbeaec97eb442a6b72
-def get_transition_matrix(labels, max_syllable=100, normalize='bigram',
-                          smoothing=0.0, combine=False, disable_output=False) -> list:
-    '''
-    Compute the transition matrix from a set of model labels.
-
-    Parameters
-    ----------
-    labels (list of np.array of ints): labels loaded from a model fit
-    max_syllable (int): maximum syllable number to consider
-    normalize (str): how to normalize transition matrix, 'bigram' or 'rows' or 'columns'
-    smoothing (float): constant to add to transition_matrix pre-normalization to smooth counts
-    combine (bool): compute a separate transition matrix for each element (False)
-    or combine across all arrays in the list (True)
-    disable_output (bool): verbosity
-
-    Returns
-    -------
-    transition_matrix (list): list of 2d np.arrays that represent the transitions
-            from syllable i (row) to syllable j (column)
-    '''
-
-    if combine:
-        init_matrix = np.zeros((max_syllable + 1, max_syllable + 1), dtype='float32') + smoothing
-
-        for v in labels:
-
-            transitions = _get_transitions(v)[0]
-
-            for (i, j) in zip(transitions, transitions[1:]):
-                if i <= max_syllable and j <= max_syllable:
-                    init_matrix[i, j] += 1
-
-        if normalize == 'bigram':
-            init_matrix /= init_matrix.sum()
-        elif normalize == 'rows':
-            init_matrix /= init_matrix.sum(axis=1, keepdims=True)
-        elif normalize == 'columns':
-            init_matrix /= init_matrix.sum(axis=0, keepdims=True)
-        else:
-            pass
-
-        all_mats = init_matrix
-    else:
-
-        all_mats = []
-        for v in tqdm.tqdm(labels, disable=disable_output):
-
-            init_matrix = np.zeros((max_syllable + 1, max_syllable + 1), dtype='float32') + smoothing
-            transitions = _get_transitions(v)[0]
-
-            for (i, j) in zip(transitions, transitions[1:]):
-                if i <= max_syllable and j <= max_syllable:
-                    init_matrix[i, j] += 1
-
-            if normalize == 'bigram':
-                init_matrix /= init_matrix.sum()
-            elif normalize == 'rows':
-                init_matrix /= init_matrix.sum(axis=1, keepdims=True)
-            elif normalize == 'columns':
-                init_matrix /= init_matrix.sum(axis=0, keepdims=True)
-            else:
-                pass
-
-            all_mats.append(init_matrix)
-
-    return all_mats
-
 def get_syllable_usages(model_data, count):
     '''
     Computes the overall syllable usages, and returns a 1D array of their corresponding usage values.
@@ -269,7 +137,7 @@ def get_syllable_usages(model_data, count):
 
     Returns
     -------
-    syllable_usages (1D np array): array of sorted syllable usages for all syllables in model.
+    syllable_usages (1D np array): array of sorted syllable usages for all syllables in model
     '''
 
     # process the syllable usages over all frames/emissions in the entire cohort
@@ -279,6 +147,7 @@ def get_syllable_usages(model_data, count):
     syllable_usages = np.sum(usages_by_mouse, axis=0) / np.sum(usages_by_mouse)
     return syllable_usages
 
+    return syllable_usages
 
 def get_mouse_syllable_slices(syllable: int, labels: np.ndarray) -> Iterator[slice]:
     '''
@@ -1140,3 +1009,4 @@ def retrieve_pcs_from_slices(slices, pca_scores, max_dur=60, min_dur=3,
             syllable_matrix = np.zeros((subsampling, max_dur, npcs))
             syllable_matrix[:] = np.nan
 
+    return syllable_matrix

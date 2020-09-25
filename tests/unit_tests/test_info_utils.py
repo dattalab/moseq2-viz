@@ -3,7 +3,8 @@ import numpy as np
 from unittest import TestCase
 from moseq2_viz.model.util import parse_model_results
 from moseq2_viz.info.util import entropy, entropy_rate
-from moseq2_viz.model.util import get_syllable_statistics, get_transition_matrix, relabel_by_usage
+from moseq2_viz.model.util import get_syllable_statistics
+from moseq2_viz.model.trans_graph import get_transition_matrix
 
 
 class TestInfoUtils(TestCase):
