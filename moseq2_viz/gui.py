@@ -15,7 +15,8 @@ from .cli import plot_transition_graph
 from moseq2_viz.helpers.wrappers import add_group_wrapper, plot_syllable_stat_wrapper, \
     plot_scalar_summary_wrapper, plot_transition_graph_wrapper, copy_h5_metadata_to_yaml_wrapper, \
     plot_verbose_pdfs_wrapper, plot_mean_group_position_pdf_wrapper
-from moseq2_viz.helpers.i_wrappers import interactive_group_setting_wrapper, interactive_syllable_labeler_wrapper
+from moseq2_viz.helpers.i_wrappers import (interactive_group_setting_wrapper, interactive_syllable_labeler_wrapper,
+                                    interactive_crowd_movie_comparison_preview)
 
 
 def get_groups_command(index_file):
@@ -141,6 +142,33 @@ def label_syllables(progress_paths, max_syllables=None, n_explained=90):
     interactive_syllable_labeler_wrapper(model_path, config_file,
                                          index_file, crowd_dir, syll_info_path,
                                          max_syllables=max_syllables, n_explained=n_explained)
+
+def interactive_crowd_movie_comparison(progress_paths, group_movie_dir, get_pdfs=True):
+    '''
+     Parses notebook progress dictionary to load required input parameters and
+    launch the interactive GUI.
+
+    Parameters
+    ----------
+    progress_paths (dict): Notebook progress dict containing paths to required function inputs.
+    group_movie_dir (str): Path to write crowd movies to.
+    get_pdfs (bool): Decides whether to compute and graph syllable position heatmaps
+
+    Returns
+    -------
+    '''
+
+    # Get proper input paths
+    model_path = progress_paths['model_path']
+    config_file = progress_paths['config_file']
+    index_file = progress_paths['index_file']
+    syll_info_path = progress_paths['syll_info']
+    syll_info_df_path = progress_paths['df_info_path']
+
+    output_notebook()
+    interactive_crowd_movie_comparison_preview(config_file, index_file, model_path,
+                                               syll_info_path, group_movie_dir, syll_info_df_path,
+                                               get_pdfs=get_pdfs)
 
 def copy_h5_metadata_to_yaml_command(input_dir, h5_metadata_path):
     '''
