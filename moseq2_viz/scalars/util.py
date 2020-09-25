@@ -689,7 +689,6 @@ def compute_mean_syll_scalar(complete_df, scalar_df, label_df, scalar='centroid_
     -------
     complete_df (pd.DataFrame): updated input dataframe with a speed value for each syllable merge in as a new column.
     '''
-    warnings.filterwarnings('ignore')
 
     warnings.filterwarnings('ignore')
 

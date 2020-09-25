@@ -145,7 +145,6 @@ def get_syllable_usages(model_data, count):
                                 for labels in model_data['labels']])
 
     syllable_usages = np.sum(usages_by_mouse, axis=0) / np.sum(usages_by_mouse)
-    return syllable_usages
 
     return syllable_usages
 
