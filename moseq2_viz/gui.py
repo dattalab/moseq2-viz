@@ -15,7 +15,8 @@ from .cli import plot_transition_graph
 from moseq2_viz.helpers.wrappers import add_group_wrapper, plot_syllable_stat_wrapper, \
     plot_scalar_summary_wrapper, plot_transition_graph_wrapper, copy_h5_metadata_to_yaml_wrapper, \
     plot_verbose_pdfs_wrapper, plot_mean_group_position_pdf_wrapper
-from moseq2_viz.helpers.i_wrappers import interactive_group_setting_wrapper, interactive_syllable_labeler_wrapper
+from moseq2_viz.helpers.i_wrappers import (interactive_group_setting_wrapper, interactive_syllable_labeler_wrapper,
+                                           interactive_syllable_stat_wrapper)
 
 
 def get_groups_command(index_file):
@@ -141,6 +142,30 @@ def label_syllables(progress_paths, max_syllables=None, n_explained=90):
     interactive_syllable_labeler_wrapper(model_path, config_file,
                                          index_file, crowd_dir, syll_info_path,
                                          max_syllables=max_syllables, n_explained=n_explained)
+
+def interactive_syllable_stats(progress_paths, max_syllable=None):
+    '''
+    Parses notebook progress paths to load input required input parameters to
+     launch the interactive syllable statistics explorer GUI.
+
+    Parameters
+    ----------
+    progress_paths (dict): Notebook progress dict containing paths to required function inputs.
+    max_syllables (int or None): Manually inputted number of syllables to label. (default = None)
+
+    Returns
+    -------
+    '''
+
+    # Get proper input parameters
+    index_file = progress_paths['index_file']
+    model_path = progress_paths['model_path']
+    syll_info_path = progress_paths['syll_info']
+    syll_info_df_path = progress_paths['df_info_path']
+
+    output_notebook()
+    interactive_syllable_stat_wrapper(index_file, model_path, syll_info_path,
+                                      syll_info_df_path, max_syllables=max_syllable)
 
 def copy_h5_metadata_to_yaml_command(input_dir, h5_metadata_path):
     '''
