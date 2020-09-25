@@ -11,6 +11,7 @@ CLI functions, then call the corresponding wrapper function with the given input
 import os
 import ruamel.yaml as yaml
 from .cli import plot_transition_graph
+from moseq2_viz.helpers.i_wrappers import interactive_group_setting_wrapper
 from moseq2_viz.helpers.wrappers import add_group_wrapper, plot_syllable_stat_wrapper, \
     plot_scalar_summary_wrapper, plot_transition_graph_wrapper, copy_h5_metadata_to_yaml_wrapper, \
     plot_verbose_pdfs_wrapper, plot_mean_group_position_pdf_wrapper
@@ -96,6 +97,22 @@ def add_group(index_file, by='SessionName', value='default', group='default', ex
         else:
             print('ERROR, did not enter equal number of substring values -> groups.')
     get_groups_command(index_file)
+
+def interactive_group_setting(index_file):
+    '''
+
+    Notebook function that calls the wrapper.
+
+    Parameters
+    ----------
+    index_file (str): Path to index file.
+
+    Returns
+    -------
+    '''
+
+    interactive_group_setting_wrapper(index_file)
+
 
 def copy_h5_metadata_to_yaml_command(input_dir, h5_metadata_path):
     '''
