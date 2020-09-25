@@ -1,68 +1,89 @@
 '''
 
+Wrapper functions for all the interactive functionality in moseq2-viz.
+
 '''
 
+import os
+import qgrid
+import shutil
 import joblib
 import numpy as np
 import pandas as pd
+from bokeh.io import show
 import ruamel.yaml as yaml
-from collections import OrderedDict
-from IPython.display import display
-from moseq2_viz.interactive.widgets import *
+import ipywidgets as widgets
+from ipywidgets import interactive_output
 from moseq2_viz.util import index_to_dataframe
-from ipywidgets import fixed, interactive_output
-from moseq2_viz.interactive.view import graph_dendrogram
-from moseq2_viz.helpers.wrappers import init_wrapper_function
-from moseq2_viz.interactive.controller import SyllableLabeler, InteractiveSyllableStats, CrowdMovieComparison
+from IPython.display import display, clear_output
+from moseq2_viz.interactive.widgets import GroupSettingWidgets
+from moseq2_viz.interactive.controller import SyllableLabeler, InteractiveSyllableStats
 from moseq2_viz.model.util import relabel_by_usage, get_syllable_usages, parse_model_results
 
 def interactive_group_setting_wrapper(index_filepath):
     '''
 
+    Interactive wrapper function that launches a qgrid object, which is a table
+     that has excel-like interactive functionality.
+
+    Users will select multiple rows in the displayed table, enter their desired group name,
+     update the entries and finally save the file.
+
+    Qgrid also affords column filtering via mouse-click interactivity and entering strings to filter by
+     in the pop-up menu.
+
     Parameters
     ----------
-    index_filepath
+
+    index_filepath (str): Path to index file to read and update.
 
     Returns
     -------
-
     '''
 
+    index_grid = GroupSettingWidgets()
+
     index_dict, df = index_to_dataframe(index_filepath)
-    qgrid_widget = qgrid.show_grid(df[['SessionName', 'SubjectName', 'group', 'uuid']], column_options=col_opts,
-                                   column_definitions=col_defs, show_toolbar=False)
+    qgrid_widget = qgrid.show_grid(df[['SessionName', 'SubjectName', 'group', 'uuid']], column_options=index_grid.col_opts,
+                                   column_definitions=index_grid.col_defs, show_toolbar=False)
 
     def update_table(b):
         '''
 
+        Callback function for when the user clicks the "Set Group" button.
+         On click, the table will be updated with the string value inside the text box.
+
         Parameters
         ----------
-        b
+
+        b (ipywidgets.Button event): Callback event.
 
         Returns
         -------
-
         '''
 
-        update_index_button.button_style = 'info'
-        update_index_button.icon = 'none'
+        index_grid.update_index_button.button_style = 'info'
+        index_grid.update_index_button.icon = 'none'
 
         selected_rows = qgrid_widget.get_selected_df()
         x = selected_rows.index
 
         for i in x:
-            qgrid_widget.edit_cell(i, 'group', group_input.value)
+            qgrid_widget.edit_cell(i, 'group', index_grid.group_input.value)
 
     def update_clicked(b):
         '''
 
+        Button click callback function that writes the updated table values
+        to the given index file path.
+
         Parameters
         ----------
-        b
+
+        b (ipywidgets.Button event): Callback event.
 
         Returns
         -------
-
         '''
 
         files = index_dict['files']
@@ -78,30 +99,35 @@ def interactive_group_setting_wrapper(index_filepath):
         with open(index_filepath, 'w+') as f:
             yaml.safe_dump(updated_index, f)
 
-        update_index_button.button_style = 'success'
-        update_index_button.icon = 'check'
+        index_grid.update_index_button.button_style = 'success'
+        index_grid.update_index_button.icon = 'check'
 
-    update_index_button.on_click(update_clicked)
+    display(index_grid.group_set, qgrid_widget)
 
-    save_button.on_click(update_table)
+    index_grid.update_index_button.on_click(update_clicked)
+    index_grid.save_button.on_click(update_table)
 
-    display(group_set)
-    display(qgrid_widget)
-
-def interactive_syllable_labeler_wrapper(model_path, crowd_movie_dir, output_file, max_syllables=None):
+def interactive_syllable_labeler_wrapper(model_path, config_file, index_file, crowd_movie_dir, output_file, max_syllables=None, n_explained=90):
     '''
-
+    Wrapper function to launch a syllable crowd movie preview and interactive labeling application.
     Parameters
     ----------
-    model_path
-    crowd_movie_dir
-    output_file
-    max_syllables
-
+    model_path (str): Path to trained model.
+    crowd_movie_dir (str): Path to crowd movie directory
+    output_file (str): Path to syllable label information file
+    max_syllables (int): Maximum number of syllables to preview and label.
     Returns
     -------
-
     '''
+
+    # Load the config file
+    with open(config_file, 'r') as f:
+        config_data = yaml.safe_load(f)
+
+    # Copy index file to modeling session directory
+    modeling_session_dir = os.path.dirname(model_path)
+    new_index_path = os.path.join(modeling_session_dir, os.path.basename(index_file))
+    shutil.copy2(index_file, new_index_path)
 
     # Load the model
     model = parse_model_results(joblib.load(model_path))
@@ -113,129 +139,77 @@ def interactive_syllable_labeler_wrapper(model_path, crowd_movie_dir, output_fil
     if max_syllables == None:
         syllable_usages = get_syllable_usages(model, 'usage')
         cumulative_explanation = 100 * np.cumsum(syllable_usages)
-        max_sylls = np.argwhere(cumulative_explanation >= 90)[0][0]
+        max_sylls = np.argwhere(cumulative_explanation >= n_explained)[0][0]
+        print(f'Number of syllables explaining {n_explained}% variance: {max_sylls}')
     else:
         max_sylls = max_syllables
 
     # Make initial syllable information dict
-    labeler = SyllableLabeler(max_sylls=max_sylls, save_path=output_file)
-    labeler.get_crowd_movie_paths(crowd_movie_dir)
+    labeler = SyllableLabeler(model_fit=model, index_file=index_file, max_sylls=max_sylls, save_path=output_file)
 
-    syll_select.options = labeler.syll_info
+    # Populate syllable info dict with relevant syllable information
+    labeler.get_crowd_movie_paths(index_file, model_path, config_data, crowd_movie_dir)
+    labeler.get_mean_syllable_info()
 
-def interactive_syllable_stat_wrapper(index_path, model_path, info_path, max_syllables=None):
+    # Set the syllable dropdown options
+    labeler.syll_select.options = labeler.syll_info
+
+    # Launch and display interactive API
+    output = widgets.interactive_output(labeler.interactive_syllable_labeler, {'syllables': labeler.syll_select})
+    display(labeler.syll_select, output)
+
+    def on_syll_change(change):
+        '''
+        Callback function for when user selects a different syllable number
+        from the Dropdown menu
+        Parameters
+        ----------
+        change (ipywidget DropDown select event): User changes current value of DropDownMenu
+        Returns
+        -------
+        '''
+
+        clear_output()
+        display(labeler.syll_select, output)
+
+    # Update view when user selects new syllable from DropDownMenu
+    output.observe(on_syll_change, names='value')
+
+def interactive_syllable_stat_wrapper(index_path, model_path, info_path, df_path=None, max_syllables=None):
     '''
+    Wrapper function to launch the interactive syllable statistics API. Users will be able to view different
+    syllable statistics, sort them according to their metric of choice, and dynamically group the data to
+    view individual sessions or group averages.
 
     Parameters
     ----------
-    index_path
-    model_path
-    info_path
-    max_syllables
-
-    Returns
-    -------
-
-    '''
-
-    istat = InteractiveSyllableStats(index_path=index_path, model_path=model_path, info_path=info_path,
-                                     max_sylls=max_syllables)
-
-    istat.interactive_stat_helper()
-
-    session_sel.options = list(istat.df.SessionName.unique())
-    ctrl_dropdown.options = list(istat.df.group.unique())
-    exp_dropdown.options = list(istat.df.group.unique())
-
-    out = interactive_output(istat.interactive_syll_stats_grapher, {'df': fixed(istat.df),
-                                                                    'obj': fixed(istat),
-                                                                    'stat': stat_dropdown,
-                                                                    'sort': sorting_dropdown,
-                                                                    'groupby': grouping_dropdown,
-                                                                    'sessions': session_sel,
-                                                                    'ctrl_group': ctrl_dropdown,
-                                                                    'exp_group': exp_dropdown
-                                                                    })
-
-    display(widget_box, out)
-    graph_dendrogram(istat)
-
-    def show_mutation_group_select(change):
-        '''
-
-        Parameters
-        ----------
-        change
-
-        Returns
-        -------
-
-        '''
-
-        if change.new == 'mutation':
-            ctrl_dropdown.layout.display = "block"
-            exp_dropdown.layout.display = "block"
-        elif sorting_dropdown.value != 'mutation':
-            ctrl_dropdown.layout.display = "none"
-            exp_dropdown.layout.display = "none"
-
-    def show_session_select(change):
-        '''
-
-        Parameters
-        ----------
-        change
-
-        Returns
-        -------
-
-        '''
-
-        if change.new == 'SessionName':
-            session_sel.layout = layout_visible
-        elif change.new == 'group':
-            session_sel.layout = layout_hidden
-
-    grouping_dropdown.observe(show_session_select)
-    sorting_dropdown.observe(show_mutation_group_select)
-
-def interactive_crowd_movie_comparison_preview(config_data, index_path, model_path, syll_info_path, output_dir):
-    '''
-    Wrapper function that launches an interactive crowd movie comparison application.
-    Uses ipywidgets and Bokeh to facilitate real time user interaction.
-
-    Parameters
-    ----------
-    config_data (dict): dict containing crowd movie creation parameters
-    index_path (str): path to index file with paths to all the extracted sessions
-    model_path (str): path to trained model containing syllable labels.
-    syll_info_path (str): path to syllable information file containing syllable labels
-    output_dir (str): path to directory to store crowd movies
+    index_path (str): Path to index file.
+    model_path (str): Path to trained model file.
+    info_path (str): Path to syllable information file.
+    max_syllables (int): Maximum number of syllables to plot.
 
     Returns
     -------
     '''
 
-    with open(syll_info_path, 'r') as f:
-        syll_info = yaml.safe_load(f)
+    # Initialize the statistical grapher context
+    istat = InteractiveSyllableStats(index_path=index_path, model_path=model_path, df_path=df_path,
+                                     info_path=info_path, max_sylls=max_syllables)
 
-    syll_select.options = syll_info
-    index, sorted_index, model_fit = init_wrapper_function(index_file=index_path, model_fit=model_path, output_dir=output_dir)
+    # Compute the syllable dendrogram values
+    istat.compute_dendrogram()
 
-    sessions = list(set(model_fit['metadata']['uuids']))
-    session_sel.options = [sorted_index['files'][s]['metadata']['SessionName'] for s in sessions]
+    # Plot the Bokeh graph with the currently selected data.
+    out = interactive_output(istat.interactive_syll_stats_grapher, {
+                                                      'stat': istat.stat_dropdown,
+                                                      'sort': istat.sorting_dropdown,
+                                                      'groupby': istat.grouping_dropdown,
+                                                      'errorbar': istat.errorbar_dropdown,
+                                                      'sessions': istat.session_sel,
+                                                      'ctrl_group': istat.ctrl_dropdown,
+                                                      'exp_group': istat.exp_dropdown
+                                                      })
 
-    cm_compare = CrowdMovieComparison(config_data=config_data, index_path=index_path,
-                                      model_path=model_path, syll_info=syll_info, output_dir=output_dir)
 
-    cm_compare.get_session_mean_syllable_info_df(model_fit, sorted_index)
-
-    out = interactive_output(cm_compare.crowd_movie_preview, {'config_data': fixed(cm_compare.config_data),
-                                                   'syllable': syll_select,
-                                                   'groupby': cm_sources_dropdown,
-                                                   'sessions': session_sel,
-                                                   'nexamples': num_examples})
-    display(out)
-
-    session_sel.observe(cm_compare.select_session)
-    cm_sources_dropdown.observe(cm_compare.show_session_select)
+    display(istat.stat_widget_box, out)
+    show(istat.cladogram)

@@ -22,7 +22,7 @@ pandas = "*"
 awscli = "*"
 future = "*"
 joblib = "*"
-ipython = '==7.14.0'
+ipython = '*'
 sklearn = "*"
 seaborn = "*"
 cytoolz = "*"

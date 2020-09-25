@@ -7,10 +7,10 @@ from copy import deepcopy
 import ruamel.yaml as yaml
 from functools import reduce
 from unittest import TestCase
-from moseq2_viz.model.util import relabel_by_usage, h5_to_dict
-from moseq2_viz.model.util import (
-    _get_transitions, calculate_syllable_usage, compress_label_sequence, find_label_transitions,
-    get_syllable_statistics, parse_model_results, merge_models, get_transition_matrix, get_mouse_syllable_slices,
+from moseq2_viz.model.trans_graph import _get_transitions, get_transition_matrix
+from moseq2_viz.model.util import (relabel_by_usage, h5_to_dict,
+    calculate_syllable_usage, compress_label_sequence, find_label_transitions,
+    get_syllable_statistics, parse_model_results, merge_models, get_mouse_syllable_slices,
     syllable_slices_from_dict, get_syllable_slices, calculate_label_durations, labels_to_changepoints,
     results_to_dataframe, _gen_to_arr, normalize_pcs, _whiten_all, simulate_ar_trajectory)
 
