@@ -103,3 +103,38 @@ class SyllableStatWidgets:
 
         self.sorting_box = VBox([self.sorting_dropdown, self.mutation_box])
         self.session_box = VBox([self.grouping_dropdown, self.session_sel])
+
+class CrowdMovieCompareWidgets:
+
+    def __init__(self):
+        style = {'description_width': 'initial'}
+
+        self.label_layout = widgets.Layout(flex_flow='column', max_height='100px')
+        self.layout_hidden = widgets.Layout(display='none', align_items='stretch')
+        self.layout_visible = widgets.Layout(display='flex',  align_items='stretch', justify_items='center')
+
+        self.cm_syll_select = widgets.Dropdown(options=[], description='Syllable #:', disabled=False)
+        self.num_examples = widgets.IntSlider(value=20, min=1, max=40, step=1, description='# of Example Mice:',
+                                              disabled=False, continuous_update=False, style=style,
+                                              layout=widgets.Layout(display='flex', align_items='stretch'))
+
+        self.cm_sources_dropdown = widgets.Dropdown(options=['group', 'SessionName'], style=style,
+                                                    description='Movie Sources:')
+
+        self.cm_session_sel = widgets.SelectMultiple(options=[], description='Sessions:', rows=10,
+                                                     style=style, layout=self.layout_hidden)
+
+        self.cm_trigger_button = widgets.Button(description='Generate Movies',
+                                                tooltip='Make Crowd Movies',
+                                                layout=widgets.Layout(display='none', width='100%',
+                                                                      align_items='stretch'))
+
+        self.syllable_box = VBox([self.cm_syll_select, self.num_examples])
+
+        self.session_box = VBox([self.cm_sources_dropdown, self.cm_session_sel, self.cm_trigger_button])
+
+        self.widget_box = HBox([self.syllable_box, self.session_box],
+                               layout=widgets.Layout(flex_flow='row',
+                                                     border='solid',
+                                                     width='100%',
+                                                     justify_content='space-around'))

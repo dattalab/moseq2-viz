@@ -611,7 +611,6 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
 
     return scalar_df
 
-
 def make_a_heatmap(position):
     '''
     Uses a kernel density function to create a heatmap representing the mouse position throughout a single session.
@@ -643,7 +642,6 @@ def make_a_heatmap(position):
     kde.fit(position)
     pdf = np.exp(kde.score_samples(position_grid)).reshape(n_grid, n_grid)
     return pdf
-
 
 def compute_all_pdf_data(scalar_df, normalize=False, centroid_vars=['centroid_x_mm', 'centroid_y_mm']):
     '''
@@ -684,6 +682,124 @@ def compute_all_pdf_data(scalar_df, normalize=False, centroid_vars=['centroid_x_
 
     return pdfs, groups, sessions, subjectNames
 
+
+def get_syllable_pdfs(pdf_df, normalize=True, syllables=range(40), groupby='group'):
+    '''
+    Computes syllable heatmap PDF grouping to display. Will either compute a average of the PDFs
+    for sessions within each unique group, or for each unique session.
+
+    Parameters
+    ----------
+    pdf_df (pd.DataFrame): Syllable Statistics DataFrame that contains 2D PDFs for each session in their own column.
+    normalize (bool): Normalize all the generated PDFs to the same scale.
+    syllables (list): List of syllables to get PDFs for
+    groupby (str): Decides how to group PDFs into outputted average(s).
+
+    Returns
+    -------
+    group_syll_pdfs (list of 2D np.arrays): List of computed grouped syllable position heatmaps.
+    groups (list of strings): List of corresponding grouping names.
+
+    '''
+
+    # Get DataFrame subset
+    mini_df = pdf_df[['pdf', 'group', 'SessionName', 'syllable']]
+
+    # Get groups to iterate through
+    if groupby == 'group':
+        groups = list(mini_df.group.unique())
+    else:
+        groups = list(mini_df.SessionName.unique())
+
+    group_syll_pdfs = []
+    for g in groups:
+        g_df = mini_df[mini_df[groupby] == g]
+
+        # Compute grouping average
+        syll_pdfs = []
+        for i in syllables:
+            pdf = g_df[g_df['syllable'] == i].pdf.to_numpy().mean(axis=0)
+            syll_pdfs.append(pdf)
+
+        # Normalize all generated graphs to same scale
+        if normalize:
+            group_syll_pdfs.append(np.stack([p / p.sum() for p in syll_pdfs]))
+        else:
+            group_syll_pdfs.append(syll_pdfs)
+
+    return group_syll_pdfs, groups
+
+
+def compute_syllable_position_heatmaps(complete_df, scalar_df, label_df,
+                                       centroid_keys=['centroid_x_mm', 'centroid_y_mm'], syllables=range(40)):
+    '''
+    Computes syllable position heatmaps for all included sessions in the inputted scalar_df,
+     and saves them in a new column in complete_df.
+
+    Parameters
+    ----------
+    complete_df (pd.DataFrame): Syllable statistics dataframe for all sessions. (Output of results_to_dataframe)
+    scalar_df (pd.DataFrame): Time-series scalar dataframe. (Output of scalars_to_dataframe)
+    label_df (pd.DataFrame): Time-series label dataframe, aligned with the scalar_df.
+    centroid_keys (list): list of scalar_df column keys to use as the centroid coordinates.
+    syllables (list): list of syllables to compute PDFs for
+
+    Returns
+    -------
+    complete_df (pd.DataFrame): Syllable statistics dataframe for all sessions with an additional PDF column.
+
+    '''
+
+    warnings.filterwarnings('ignore')
+
+    lbl_df = label_df.T
+    columns = lbl_df.columns
+    gk = ['group', 'uuid']
+
+    centroid_speeds = scalar_df[centroid_keys + gk]
+
+    all_sessions = []
+    # Iterate through sessions
+    for col in tqdm(columns, total=len(columns), desc=f'Computing Per Session Syll Positions'):
+
+        sess_lbls = lbl_df[col].iloc[3:].reset_index().dropna(axis=0, how='all')
+        sess_speeds = centroid_speeds[centroid_speeds['uuid'] == col[1]].iloc[3:].reset_index()
+
+        sess_dict = {
+            'uuid': [],
+            'syllable': [],
+            'pdf': []
+        }
+        # Iterate through syllable list
+        for lbl in syllables:
+            indices = (sess_lbls[col] == lbl)
+
+            syll_pos = np.nan_to_num(sess_speeds[:len(indices)][indices][centroid_keys].to_numpy())
+            pdf = np.zeros((50, 50))
+            if len(syll_pos) > 0:
+                try:
+                    # Compute PDF
+                    pdf = make_a_heatmap(syll_pos)
+                except ValueError:
+                    # On failure, pass zeros
+                    pass
+
+            sess_dict['uuid'].append(col[1])
+            sess_dict['syllable'].append(lbl)
+            sess_dict['pdf'].append(pdf)
+
+        all_sessions.append(sess_dict)
+
+    # Consolidate PDFs into a single DataFrame
+    all_positions_df = pd.DataFrame.from_dict(all_sessions[0])
+
+    for i in range(1, len(all_sessions)):
+        tmp_df = pd.DataFrame.from_dict(all_sessions[i])
+        all_positions_df = all_positions_df.append(tmp_df)
+
+    complete_df = pd.merge(complete_df, all_positions_df, on=['uuid', 'syllable'])
+
+    return complete_df
 
 def compute_session_centroid_speeds(scalar_df, grouping_keys=['uuid', 'group'],
                                     centroid_keys=['centroid_x_mm', 'centroid_y_mm']):

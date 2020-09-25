@@ -91,6 +91,7 @@ def write_crowd_movie_info_file(model_path, model_fit, index_file, output_dir):
     with open(info_file, 'w+') as f:
         yaml.safe_dump(info_dict, f)
 
+
 def write_crowd_movies(sorted_index, config_data, ordering, labels, label_uuids, output_dir):
     '''
     Creates syllable slices for crowd movies and writes them to files.
@@ -107,6 +108,7 @@ def write_crowd_movies(sorted_index, config_data, ordering, labels, label_uuids,
     -------
     None
     '''
+    warnings.filterwarnings('ignore')
 
     # Filtering parameters
     clean_params = {
@@ -131,10 +133,10 @@ def write_crowd_movies(sorted_index, config_data, ordering, labels, label_uuids,
                             labels=labels,
                             label_uuids=label_uuids,
                             index=sorted_index)
-        
+
         with warnings.catch_warnings():
             slices = list(tqdm(pool.imap(slice_fun, config_data['crowd_syllables']),
-                               total=config_data['max_syllable'], desc='Getting Syllable Slices', 
+                               total=config_data['max_syllable'], desc='Getting Syllable Slices',
                                disable=not config_data['progress_bar']))
 
         matrix_fun = partial(make_crowd_matrix,
@@ -147,33 +149,36 @@ def write_crowd_movies(sorted_index, config_data, ordering, labels, label_uuids,
                              legacy_jitter_fix=config_data['legacy_jitter_fix'],
                              **clean_params)
 
-        # Compute crowd matrices
         with warnings.catch_warnings():
             # creating crowd matrices
-            crowd_matrices = list(tqdm(pool.imap(matrix_fun, slices), total=len(config_data['crowd_syllables']),
+            crowd_matrices = list(tqdm(pool.imap(matrix_fun, slices),
+                                       total=len(config_data['crowd_syllables']),
                                        desc='Getting Crowd Matrices', disable=not config_data['progress_bar']))
-        
+
         # writing function
         config_data['fps'] = vid_parameters['fps']
         write_fun = partial(write_frames_preview, fps=vid_parameters['fps'], depth_min=config_data['min_height'],
-                            depth_max=config_data['max_height'], cmap=config_data['cmap'], progress_bar = config_data['progress_bar'])
+                            depth_max=config_data['max_height'], cmap=config_data['cmap'],
+                            progress_bar=config_data['progress_bar'])
 
         # get list of tuples (path_to_write, crowd_movie)
-        crowd_movies = [[os.path.join(output_dir, filename_format.format(i, config_data['count'], ordering[i])), crowd_matrix]
-                            for i, crowd_matrix in tqdm(enumerate(crowd_matrices), total=len(config_data['crowd_syllables']), 
-                                                        desc='Writing Movies', disable=not config_data['progress_bar']) 
-                            if crowd_matrix is not None]
+        crowd_movies = [
+            [os.path.join(output_dir, filename_format.format(i, config_data['count'], ordering[i])), crowd_matrix]
+            for i, crowd_matrix in tqdm(enumerate(crowd_matrices), total=len(config_data['crowd_syllables']),
+                                        desc='Writing Movies', disable=not config_data['progress_bar'])
+            if crowd_matrix is not None]
 
         if len(config_data['crowd_syllables']) > 1:
             crowd_movie_paths = [cm[0] for cm in crowd_movies]
         else:
             crowd_movies[0][0] = crowd_movies[0][0].replace('-0 ', f'-{config_data["crowd_syllables"][0]}')
-            crowd_movies[0][0] = crowd_movies[0][0].replace(f'-{ordering[0]}.', f'-{ordering[config_data["crowd_syllables"][0]]}.')
+            crowd_movies[0][0] = crowd_movies[0][0].replace(f'-{ordering[0]}.',
+                                                            f'-{ordering[config_data["crowd_syllables"][0]]}.')
             crowd_movie_paths = [cm[0] for cm in crowd_movies]
 
         # write movie
         pool.starmap(write_fun, crowd_movies)
-        
+
     return crowd_movie_paths
 
 def write_frames_preview(filename, frames=np.empty((0,)), threads=6,
