@@ -4,13 +4,10 @@ Visualization model containing all plotting functions and some dependent data pr
 
 '''
 
-import re
 import cv2
 import h5py
-import math
 import random
 import numpy as np
-import networkx as nx
 import seaborn as sns
 from cytoolz import pluck
 from tqdm.auto import tqdm
@@ -20,7 +17,7 @@ from moseq2_viz.util import star
 from typing import Tuple, Iterable
 from matplotlib import lines, gridspec
 from networkx.drawing.nx_agraph import graphviz_layout
-from moseq2_viz.model.label_util import get_sorted_syllable_stat_ordering, get_syllable_muteness_ordering
+from moseq2_viz.model.label_util import get_sorted_syllable_stat_ordering, get_syllable_mutation_ordering
 
 def clean_frames(frames, medfilter_space=None, gaussfilter_space=None,
                  tail_filter=None, tail_threshold=5):
@@ -81,288 +78,6 @@ def save_fig(fig, output_file, name='{}', **kwargs):
 
     fig.savefig(f'{name}.png'.format(output_file), **kwargs)
     fig.savefig(f'{name}.pdf'.format(output_file), **kwargs)
-
-def convert_ebunch_to_graph(ebunch):
-    '''
-    Convert transition matrices to tranistion DAGs.
-
-    Parameters
-    ----------
-    ebunch (list of tuples): syllable transition data
-
-    Returns
-    -------
-    g (networkx.DiGraph): DAG object to graph
-    '''
-
-    g = nx.DiGraph()
-    g.add_weighted_edges_from(ebunch)
-
-    return g
-
-def floatRgb(mag, cmin, cmax):
-    '''
-    Return a tuple of floats between 0 and 1 for R, G, and B.
-
-    Parameters
-    ----------
-    mag (float): color intensity.
-    cmin (float): minimum color value
-    cmax (float): maximum color value
-
-    Returns
-    -------
-    red (float): red value
-    green (float): green value
-    blue (float): blue value
-    '''
-
-    # Normalize to 0-1
-    try: x = float(mag-cmin)/(cmax-cmin)
-    except ZeroDivisionError: x = 0.5 # cmax == cmin
-    blue  = min((max((4*(0.75-x), 0.)), 1.))
-    red   = min((max((4*(x-0.25), 0.)), 1.))
-    green = min((max((4*math.fabs(x-0.5)-1., 0.)), 1.))
-    return red, green, blue
-
-
-def convert_transition_matrix_to_ebunch(weights, transition_matrix,
-                                        usages=None, usage_threshold=-.1,
-                                        edge_threshold=-.1, indices=None,
-                                        keep_orphans=False, max_syllable=None):
-    '''
-
-    Parameters
-    ----------
-    weights (np.ndarray): syllable transition edge weights
-    transition_matrix (np.ndarray): syllable transition matrix
-    usages (list): list of syllable usages
-    usage_threshold (float): threshold syllable usage to include a syllable in list of orphans
-    edge_threshold (float): threshold transition probability to consider an edge part of the graph.
-    indices (list): indices of syllables to list as orphans
-    keep_orphans (bool): indicate whether to graph orphan syllables
-    max_syllable (bool): maximum numebr of syllables to include in graph
-
-    Returns
-    -------
-    ebunch (list): syllable transition data.
-    orphans (list): syllables with no edges.
-    '''
-
-    ebunch = []
-    orphans = []
-    if indices is None and not keep_orphans:
-        for i, v in np.ndenumerate(transition_matrix):
-            if np.abs(v) > edge_threshold:
-                ebunch.append((i[0], i[1], weights[i[0], i[1]]))
-    elif indices is None and keep_orphans:
-        for i, v in np.ndenumerate(transition_matrix):
-            ebunch.append((i[0], i[1], weights[i[0], i[1]]))
-            if np.abs(v) <= edge_threshold:
-                orphans.append((i[0], i[1]))
-    elif indices is not None and keep_orphans:
-        for i in indices:
-            ebunch.append((i[0], i[1], weights[i[0], i[1]]))
-            if np.abs(weights[i[0], i[1]]) <= edge_threshold:
-                orphans.append((i[0], i[1]))
-    else:
-        ebunch = [(i[0], i[1], weights[i[0], i[1]]) for i in indices]
-
-    if usages is not None:
-        ebunch = [e for e in ebunch if usages[e[0]] > usage_threshold and usages[e[1]] > usage_threshold]
-
-    if max_syllable is not None:
-        ebunch = [e for e in ebunch if e[0] <= max_syllable and e[1] <= max_syllable]
-
-    return ebunch, orphans
-
-
-def graph_transition_matrix(trans_mats, usages=None, groups=None,
-                            edge_threshold=.0025, anchor=0, usage_threshold=0,
-                            node_color='w', node_edge_color='r', layout='spring',
-                            edge_width_scale=100, node_size=400, fig=None, ax=None,
-                            width_per_group=8, headless=False, font_size=12,
-                            plot_differences=True, difference_threshold=.0005,
-                            difference_edge_width_scale=500, weights=None,
-                            usage_scale=1e5, arrows=False, keep_orphans=False,
-                            max_syllable=None, orphan_weight=0, edge_color='k', **kwargs):
-    '''
-    Creates transition graph plot given a transition matrix and some metadata.
-
-    Parameters
-    ----------
-    trans_mats (np.ndarray): syllable transition matrix
-    usages (list): list of syllable usage probabilities
-    groups (list): list groups to graph transition graphs for.
-    edge_threshold (float): threshold to include edge in graph
-    anchor (int): syllable index as the base syllable
-    usage_threshold (int): threshold to include syllable usages
-    node_color (str): node colors
-    node_edge_color (str): node edge color.
-    layout (str): layout format
-    edge_width_scale (int): edge line width scaling factor
-    node_size (int): node size scaling factor
-    fig (pyplot figure): figure to plot to
-    ax (pyplot Axes): axes object
-    width_per_group (int): graph width scaling factor per group
-    headless (bool): exclude first node.
-    font_size (int): size of node label text.
-    plot_differences (bool): plot difference between group transition matrices
-    difference_threshold (float): threshold to consider 2 graph elements different
-    difference_edge_width_scale (float): difference graph edge line width scaling factor
-    weights (list): list of edge weights
-    usage_scale (float): syllable usage scaling factor
-    arrows (bool): indicate whether to plot arrows as transitions.
-    keep_orphans (bool): plot orphans.
-    max_syllable (int): number of syllables (nodes) to plot
-    orphan_weight (int): scaling factor to plot orphan node sizes
-    edge_color (str): edge color
-    kwargs (dict): extra keyword arguments
-
-    Returns
-    -------
-    fig (pyplot figure): figure containing transition graphs.
-    ax (pyplot axis): figure axis object.
-    pos (dict): dict figure information.
-    '''
-
-    if headless:
-        plt.switch_backend('agg')
-
-    if weights is None:
-        weights = trans_mats
-
-    assert isinstance(trans_mats, (np.ndarray, list)), "Transition matrix must be a numpy array or list of arrays"
-
-    if isinstance(trans_mats, np.ndarray) and trans_mats.ndim == 2:
-        trans_mats = [trans_mats]
-
-    if usages is not None and isinstance(usages[0], (list, np.ndarray)):
-        from collections import defaultdict
-        for i, u in enumerate(usages):
-            d = defaultdict(int)
-            for j, v in enumerate(u):
-                d[j] = v
-            usages[i] = d
-
-    ngraphs = len(trans_mats)
-
-    if anchor > ngraphs:
-        print('Setting anchor to 0')
-        anchor = 0
-
-    if usages is not None:
-        for i in range(len(usages)):
-            usage_total = sum(usages[i].values())
-            for k, v in usages[i].items():
-                usages[i][k] = v / usage_total
-        usages_anchor = usages[anchor]
-    else:
-        usages_anchor = None
-
-    ebunch_anchor, orphans = convert_transition_matrix_to_ebunch(
-        weights[anchor], trans_mats[anchor], edge_threshold=edge_threshold,
-        keep_orphans=keep_orphans, usages=usages_anchor,
-        usage_threshold=usage_threshold, max_syllable=max_syllable)
-
-    graph_anchor = convert_ebunch_to_graph(ebunch_anchor)
-    nnodes = len(graph_anchor.nodes())
-
-    if type(layout) is str and layout.lower() == 'spring':
-        k = 1.5 / np.sqrt(nnodes)
-        pos = nx.spring_layout(graph_anchor, k=k)
-    elif type(layout) is str and layout.lower() == 'circular':
-        pos = nx.circular_layout(graph_anchor)
-    elif type(layout) is str and layout.lower() == 'spectral':
-        pos = nx.spectral_layout(graph_anchor)
-    elif type(layout) is str and layout.lower()[:8] == 'graphviz':
-        prog = re.split(r'\:', layout.lower())[1]
-        pos = graphviz_layout(graph_anchor, prog=prog)
-    elif type(layout) is dict:
-        # user passed pos directly
-        pos = layout
-    else:
-        raise RuntimeError('Did not understand layout type')
-
-    if fig is None or ax is None:
-        fig, ax = plt.subplots(ngraphs, ngraphs,
-                               figsize=(ngraphs*width_per_group,
-                                        ngraphs*width_per_group))
-
-    if ngraphs == 1:
-        ax = [[ax]]
-
-    for i, tm in enumerate(trans_mats):
-
-        ebunch, orphans = convert_transition_matrix_to_ebunch(
-            tm, tm, edge_threshold=edge_threshold, indices=ebunch_anchor,
-            keep_orphans=keep_orphans)
-        graph = convert_ebunch_to_graph(ebunch)
-        width = [tm[u][v] * edge_width_scale if (u, v) not in orphans else orphan_weight
-                 for u, v in graph.edges()]
-
-        if usages is not None:
-            node_size = [usages[i][k] * usage_scale for k in pos.keys()]
-
-        nx.draw_networkx_nodes(graph, pos,
-                               edgecolors=node_edge_color, node_color=node_color,
-                               node_size=node_size, ax=ax[i][i], cmap='jet')
-        nx.draw_networkx_edges(graph, pos, graph.edges(), width=width, ax=ax[i][i],
-                               arrows=arrows, edge_color=edge_color)
-        if font_size > 0:
-            nx.draw_networkx_labels(graph, pos,
-                                    {k: k for k in pos.keys()},
-                                    font_size=font_size,
-                                    ax=ax[i][i], font_color='k')
-
-        if groups is not None:
-            ax[i][i].set_title('{}'.format(groups[i]))
-
-    if plot_differences and groups is not None and ngraphs > 1:
-        for i, tm in enumerate(trans_mats):
-            for j, tm2 in enumerate(trans_mats[i+1:]):
-                df = tm2 - tm
-
-                ebunch, _ = convert_transition_matrix_to_ebunch(
-                    df, df, edge_threshold=difference_threshold, indices=ebunch_anchor)
-                graph = convert_ebunch_to_graph(ebunch)
-
-                weight = [np.abs(graph[u][v]['weight'])*difference_edge_width_scale
-                          for u, v in graph.edges()]
-
-                if usages is not None:
-                    df_usage = [usages[j + i + 1][k] - usages[i][k] for k in pos.keys()]
-                    node_size = list(np.abs(df_usage) * usage_scale)
-                    node_edge_color = ['r' if x > 0 else 'b' for x in df_usage]
-
-                nx.draw_networkx_nodes(graph, pos, edgecolors=node_edge_color, node_color=node_color,
-                                       node_size=node_size, ax=ax[i][j + i + 1], linewidths=1.5)
-                colors = []
-
-                for u, v in graph.edges():
-                    if graph[u][v]['weight'] > 0:
-                        colors.append('r')
-                    else:
-                        colors.append('b')
-
-                nx.draw_networkx_edges(graph, pos, graph.edges(),
-                                       width=weight, edge_color=colors,
-                                       ax=ax[i][j + i + 1], arrows=arrows)
-
-                if font_size > 0:
-                    nx.draw_networkx_labels(graph, pos,
-                                            {k: k for k in pos.keys()},
-                                            font_size=font_size,
-                                            ax=ax[i][j + i + 1], font_color='k')
-
-                ax[i][j + i + 1].set_title('{} - {}'.format(groups[j + i + 1], groups[i]))
-
-    for i in range(len(ax)):
-        for j in range(len(ax[i])):
-            ax[i][j].axis('off')
-
-    return fig, ax, pos
-
 
 def crowd_matrix_from_loaded_data(slices: Iterable[Tuple[int, int]], frames, scalars, nexamples=50,
                                   pad=30, dur_clip=1000, raw_size=(512, 424), crop_size=(80, 80)):
@@ -800,9 +515,9 @@ def check_types(function):
             if ordering[0] == 'm':
                 if (ctrl_group != None and exp_group != None) and (ctrl_group in groups and exp_group in groups):
                     max_sylls += 1
-                    ordering = get_syllable_muteness_ordering(complete_df, ctrl_group=ctrl_group,
-                                                                           exp_group=exp_group, max_sylls=max_sylls,
-                                                                           stat=stat)
+                    ordering = get_syllable_mutation_ordering(complete_df, ctrl_group=ctrl_group,
+                                                              exp_group=exp_group, max_sylls=max_sylls,
+                                                              stat=stat)
                 else:
                     print('You must enter valid control and experimental group names found in your trained model and index file.\nPlotting descending order.')
                     ordering, _ = get_sorted_syllable_stat_ordering(complete_df, stat=stat)

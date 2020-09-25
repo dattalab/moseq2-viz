@@ -3,16 +3,16 @@ import cv2
 import joblib
 import unittest
 import numpy as np
-import pandas as pd
 import networkx as nx
 import ruamel.yaml as yaml
 from unittest import TestCase
 from moseq2_viz.util import parse_index
+from moseq2_viz.model.trans_graph import convert_ebunch_to_graph, floatRgb, \
+    convert_transition_matrix_to_ebunch, get_transition_matrix, graph_transition_matrix
 from moseq2_viz.scalars.util import scalars_to_dataframe
-from moseq2_viz.model.util import parse_model_results, get_transition_matrix, \
-    get_syllable_statistics, relabel_by_usage, get_syllable_slices, results_to_dataframe
-from moseq2_viz.viz import clean_frames, convert_ebunch_to_graph, floatRgb, convert_transition_matrix_to_ebunch, \
-    graph_transition_matrix, make_crowd_matrix, position_plot, scalar_plot, plot_syll_stats_with_sem
+from moseq2_viz.model.util import parse_model_results, get_syllable_statistics, \
+    relabel_by_usage, get_syllable_slices, results_to_dataframe
+from moseq2_viz.viz import clean_frames, make_crowd_matrix, position_plot, scalar_plot, plot_syll_stats_with_sem
 
 def get_fake_movie():
     edge_size = 40
@@ -162,7 +162,7 @@ class TestViz(TestCase):
 
     def test_graph_transition_matrix(self):
         trans_mats, usages = get_ebunch(ret_trans=True)
-        groups = ('Group1')
+        groups = ['Group1', 'Group2']
         plt, _, _ = graph_transition_matrix(trans_mats, groups=groups)
 
         outfile = 'data/test_transition.png'

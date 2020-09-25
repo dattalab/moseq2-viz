@@ -92,7 +92,7 @@ def to_df(labels, uuid) -> pd.DataFrame:
     return df
 
 
-def get_syllable_muteness_ordering(complete_df, ctrl_group, exp_group, max_sylls=None, stat='usage'):
+def get_syllable_mutation_ordering(complete_df, ctrl_group, exp_group, max_sylls=None, stat='usage'):
     '''
     Computes the syllable ordering for the difference of the inputted groups (exp - ctrl).
     The sorted result will yield an array will indices depicting the largest positive (upregulated)
@@ -108,13 +108,15 @@ def get_syllable_muteness_ordering(complete_df, ctrl_group, exp_group, max_sylls
 
     Returns
     -------
-    muteness_ordering (list): list of array indices for the new label mapping.
+    mutation_ordering (list): list of array indices for the new label mapping.
     '''
 
-    muteness_df = complete_df.groupby(['group', 'syllable'], as_index=False).mean()
+    # Prepare DataFrame
+    mutation_df = complete_df.groupby(['group', 'syllable'], as_index=False).mean()
 
-    control_df = muteness_df[muteness_df['group'] == ctrl_group]
-    exp_df = muteness_df[muteness_df['group'] == exp_group]
+    # Get groups to measure mutation by
+    control_df = mutation_df[mutation_df['group'] == ctrl_group]
+    exp_df = mutation_df[mutation_df['group'] == exp_group]
 
     # compute mean difference at each syll usage
     diff_df = exp_df.groupby('syllable', as_index=True).mean() \
@@ -123,9 +125,9 @@ def get_syllable_muteness_ordering(complete_df, ctrl_group, exp_group, max_sylls
         max_sylls = len(diff_df)
 
     # sort them from most mutant to least mutant
-    muteness_ordering = diff_df.sort_values(by=stat, ascending=False).index[:max_sylls]
+    mutation_ordering = diff_df.sort_values(by=stat, ascending=False).index[:max_sylls]
 
-    return muteness_ordering
+    return mutation_ordering
 
 
 def get_sorted_syllable_stat_ordering(complete_df, stat='usage'):
@@ -146,7 +148,10 @@ def get_sorted_syllable_stat_ordering(complete_df, stat='usage'):
     tmp = complete_df.groupby(['syllable'], as_index=False).mean().copy()
     tmp.sort_values(by=[stat], inplace=True, ascending=False)
 
+    # Get sorted ordering
     ordering = tmp.syllable.to_numpy()
+
+    # Get order mapping
     relabel_mapping = {o: i for i, o in enumerate(ordering)}
 
     return ordering, relabel_mapping

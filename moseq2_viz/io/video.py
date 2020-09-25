@@ -18,6 +18,44 @@ from moseq2_viz.viz import make_crowd_matrix
 from moseq2_viz.util import check_video_parameters
 from moseq2_viz.model.util import get_syllable_slices
 
+def get_video_info(filename):
+    '''
+
+    Get dimensions of data compressed using ffv1, along with duration via ffmpeg.
+
+    Parameters
+    ----------
+    filename (string): name of file
+
+    Returns
+    -------
+    (dict): dictionary containing video file metadata
+    '''
+
+    command = ['ffprobe',
+               '-v', 'fatal',
+               '-show_entries',
+               'stream=width,height,r_frame_rate,nb_frames',
+               '-of',
+               'default=noprint_wrappers=1:nokey=1',
+               filename,
+               '-sexagesimal']
+
+    ffmpeg = subprocess.Popen(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    out, err = ffmpeg.communicate()
+
+    if(err):
+        print(err)
+    out = out.decode().split('\n')
+    try:
+        return {'file': filename,
+            'dims': (int(float(out[0])), int(float(out[1]))),
+            'fps': float(out[2].split('/')[0])/float(out[2].split('/')[1]),
+            'nframes': int(out[3])}
+    except:
+        print('Could not process this video extension:', filename)
+        return {}
+
 def write_crowd_movie_info_file(model_path, model_fit, index_file, output_dir):
     '''
     Creates an info.yaml file in the crowd movie directory that holds model training parameters.
@@ -107,6 +145,7 @@ def write_crowd_movies(sorted_index, config_data, ordering, labels, label_uuids,
                              legacy_jitter_fix=config_data['legacy_jitter_fix'],
                              **clean_params)
 
+        # Compute crowd matrices
         with warnings.catch_warnings():
             crowd_matrices = list(tqdm(pool.imap(matrix_fun, slices), total=config_data['max_syllable'],
                                        desc='Getting Crowd Matrices'))
@@ -114,6 +153,7 @@ def write_crowd_movies(sorted_index, config_data, ordering, labels, label_uuids,
         write_fun = partial(write_frames_preview, fps=vid_parameters['fps'], depth_min=config_data['min_height'],
                             depth_max=config_data['max_height'], cmap=config_data['cmap'])
 
+        # Write crowd movies
         pool.starmap(write_fun,
                      [(os.path.join(output_dir, filename_format.format(i, config_data['count'], ordering[i])),
                        crowd_matrix)
@@ -157,17 +197,20 @@ def write_frames_preview(filename, frames=np.empty((0,)), threads=6,
     (subProcess.Pipe object): if there are more slices/chunks to write to, otherwise None.
     '''
 
+    # Set frame padding
     if not np.mod(frames.shape[1], 2) == 0:
         frames = np.pad(frames, ((0, 0), (0, 1), (0, 0)), 'constant', constant_values=0)
 
     if not np.mod(frames.shape[2], 2) == 0:
         frames = np.pad(frames, ((0, 0), (0, 0), (0, 1)), 'constant', constant_values=0)
 
+    # Get string frame dimensions
     if not frame_size and type(frames) is np.ndarray:
         frame_size = '{0:d}x{1:d}'.format(frames.shape[2], frames.shape[1])
     elif not frame_size and type(frames) is tuple:
         frame_size = '{0:d}x{1:d}'.format(frames[0], frames[1])
 
+    # Set text metadata to write frame numbers
     font = cv2.FONT_HERSHEY_SIMPLEX
     white = (255, 255, 255)
     txt_pos = (5, frames.shape[-1] - 40)
@@ -192,12 +235,15 @@ def write_frames_preview(filename, frames=np.empty((0,)), threads=6,
     if get_cmd:
         return command
 
+    # Run ffmpeg command
     if not pipe:
         pipe = subprocess.Popen(
             command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
 
+    # Get color map
     use_cmap = plt.get_cmap(cmap)
 
+    # Write movie
     for i in tqdm(range(frames.shape[0]), desc="Writing frames", disable=~progress_bar):
         disp_img = frames[i, :].copy().astype('float32')
         disp_img = (disp_img-depth_min)/(depth_max-depth_min)

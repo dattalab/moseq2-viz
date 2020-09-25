@@ -1,74 +1,78 @@
 '''
 
-'''
+This file contains classes for all the widgets that facilitate the interactive
+ functionality in their extended (child) classes.
 
+'''
+import qgrid
 import ipywidgets as widgets
 from ipywidgets import HBox, VBox
 from bokeh.models.widgets import PreText
 
-### Syllable Labeler Widgets
-# UI widgets
-syll_select = widgets.Dropdown(options={}, description='Syllable #:', disabled=False)
+class GroupSettingWidgets:
 
-# labels
-cm_lbl = PreText(text="Crowd Movie") # current crowd movie number
+    def __init__(self):
+        style = {'description_width': 'initial', 'display': 'flex-grow', 'align_items': 'stretch'}
 
-syll_lbl = widgets.Label(value="Syllable Name") # name user prompt label
-desc_lbl = widgets.Label(value="Short Description") # description label
+        self.col_opts = {
+            'editable': False,
+            'toolTip': "Not editable"
+        }
 
-# text input widgets
-lbl_name_input = widgets.Text(value='',
-                              placeholder='Syllable Name',
-                              tooltip='2 word name for syllable')
+        self.col_defs = {
+            'group': {
+                'editable': True,
+                'toolTip': 'editable'
+            }
+        }
 
-desc_input = widgets.Text(value='',
-                          placeholder='Short description of behavior',
-                          tooltip='Describe the behavior.',
-                          layout=widgets.Layout(height='260px'),
-                          disabled=False)
+        self.group_input = widgets.Text(value='', placeholder='Enter Group Name to Set', style=style,
+                                        description='Desired Group Name', continuous_update=False, disabled=False)
+        self.save_button = widgets.Button(description='Set Group', style=style,
+                                          disabled=False, tooltip='Set Group')
+        self.update_index_button = widgets.Button(description='Update Index File', style=style,
+                                                  disabled=False, tooltip='Save Parameters')
 
-# buttons
-prev_button = widgets.Button(description='Prev', disabled=False, tooltip='Previous Syllable', layout=widgets.Layout(flex='2 1 0', width='auto', height='40px'))
-set_button = widgets.Button(description='Save Setting', disabled=False, tooltip='Save current inputs.', button_style='primary', layout=widgets.Layout(flex='3 1 0', width='auto', height='40px'))
-next_button = widgets.Button(description='Next', disabled=False, tooltip='Next Syllable', layout=widgets.Layout(flex='2 1 0', width='auto', height='40px'))
+        self.group_set = HBox([self.group_input, self.save_button, self.update_index_button])
+        qgrid.set_grid_option('forceFitColumns', False)
+        qgrid.set_grid_option('enableColumnReorder', True)
+        qgrid.set_grid_option('highlightSelectedRow', True)
+        qgrid.set_grid_option('highlightSelectedCell', False)
 
-# Layout Boxes
-label_layout = widgets.Layout(flex_flow='column', max_height='200px')
-input_layout = widgets.Layout(max_height='200px') # vbox
+class SyllableLabelerWidgets:
 
-ui_layout = widgets.Layout(flex_flow='row', width='auto', max_height='50px')
-data_layout = widgets.Layout(flex_flow='row', justify_content='space-between',
-                             align_content='center', max_height='200px', width='auto')
+    def __init__(self):
 
-# input box
-lbl_box = VBox([syll_lbl, desc_lbl], layout=label_layout)
+        self.syll_select = widgets.Dropdown(options={}, description='Syllable #:', disabled=False)
 
-# input box
-input_box = VBox([lbl_name_input, desc_input])
-data_box = HBox([lbl_box, input_box], layout=data_layout)
+        # labels
+        self.cm_lbl = PreText(text="Crowd Movie") # current crowd movie number
 
-# button box
-button_box = HBox([prev_button, set_button, next_button], layout=ui_layout)
+        self.syll_lbl = widgets.Label(value="Syllable Name") # name user prompt label
+        self.desc_lbl = widgets.Label(value="Short Description") # description label
 
-### Syllable Stat Widgets
-## layouts
-layout_hidden = widgets.Layout(display='none')
-layout_visible = widgets.Layout(display='block')
+        self.syll_info_lbl = widgets.Label(value="Syllable Info", font_size=24)
 
-stat_dropdown = widgets.Dropdown(options=['usage', 'speed', 'distance to center'], description='Stat to Plot:', disabled=False)
+        self.syll_usage_value_lbl = widgets.Label(value="")
+        self.syll_speed_value_lbl = widgets.Label(value="")
+        self.syll_duration_value_lbl = widgets.Label(value="")
 
-# add dist to center
-sorting_dropdown = widgets.Dropdown(options=['usage', 'speed', 'distance to center', 'similarity', 'mutation'], description='Sort Syllables By:', disabled=False)
-ctrl_dropdown = widgets.Dropdown(options=[], description='Control Group:', disabled=False)
-exp_dropdown = widgets.Dropdown(options=[], description='Treatment Group:', disabled=False)
+        # text input widgets
+        self.lbl_name_input = widgets.Text(value='',
+                                    placeholder='Syllable Name',
+                                    tooltip='2 word name for syllable')
 
-grouping_dropdown = widgets.Dropdown(options=['group', 'SessionName'], description='Group Data By:', disabled=False)
-session_sel = widgets.SelectMultiple(options=[], description='Sessions to Graph:', layout=layout_hidden, disabled=False)
+        self.desc_input = widgets.Text(value='',
+                                placeholder='Short description of behavior',
+                                tooltip='Describe the behavior.',
+                                layout=widgets.Layout(height='260px'),
+                                disabled=False)
 
-## boxes
-mutation_box = VBox([ctrl_dropdown, exp_dropdown])
+        # buttons
+        self.prev_button = widgets.Button(description='Prev', disabled=False, tooltip='Previous Syllable', layout=widgets.Layout(flex='2 1 0', width='auto', height='40px'))
+        self.set_button = widgets.Button(description='Save Setting', disabled=False, tooltip='Save current inputs.', button_style='primary', layout=widgets.Layout(flex='3 1 0', width='auto', height='40px'))
+        self.next_button = widgets.Button(description='Next', disabled=False, tooltip='Next Syllable', layout=widgets.Layout(flex='2 1 0', width='auto', height='40px'))
 
-sorting_box = VBox([sorting_dropdown, mutation_box])
-session_box = VBox([grouping_dropdown, session_sel])
-
-widget_box = HBox([stat_dropdown, sorting_box, session_box])
+        # Box Layouts
+        self.label_layout = widgets.Layout(flex_flow='column', height='75%')
+        self.input_layout = widgets.Layout(height='200px')

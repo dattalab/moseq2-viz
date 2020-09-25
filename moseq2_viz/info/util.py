@@ -4,7 +4,8 @@ These can be used for measuring modeling model performance and group separabilit
 '''
 
 import numpy as np
-from moseq2_viz.model.util import get_syllable_statistics, get_transition_matrix, relabel_by_usage
+from moseq2_viz.model.trans_graph import get_transition_matrix
+from moseq2_viz.model.util import get_syllable_statistics, relabel_by_usage
 
 
 def entropy(labels, truncate_syllable=40, smoothing=1.0,
