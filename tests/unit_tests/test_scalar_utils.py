@@ -10,7 +10,7 @@ from moseq2_viz.model.util import parse_model_results, h5_to_dict, results_to_da
 from moseq2_viz.scalars.util import star_valmap, remove_nans_from_labels, convert_pxs_to_mm, is_legacy, \
     generate_empty_feature_dict, convert_legacy_scalars, get_scalar_map, get_scalar_triggered_average, \
     nanzscore, _pca_matches_labels, process_scalars, find_and_load_feedback, scalars_to_dataframe, \
-    make_a_heatmap, compute_all_pdf_data, compute_session_centroid_speeds, compute_mean_syll_speed
+    make_a_heatmap, compute_all_pdf_data, compute_session_centroid_speeds, compute_mean_syll_scalar
 
 
 class TestScalarUtils(TestCase):
@@ -300,7 +300,7 @@ class TestScalarUtils(TestCase):
 
         scalar_df['centroid_speed_mm'] = compute_session_centroid_speeds(scalar_df)
 
-        complete_df = compute_mean_syll_speed(complete_df, scalar_df, label_df, max_sylls=40)
+        complete_df = compute_mean_syll_scalar(complete_df, scalar_df, label_df, max_sylls=40)
 
         assert 'speed' in complete_df.columns
         assert not complete_df.speed.isnull().all()

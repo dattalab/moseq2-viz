@@ -13,8 +13,7 @@ import ruamel.yaml as yaml
 from .cli import plot_transition_graph
 from moseq2_viz.helpers.wrappers import add_group_wrapper, plot_syllable_stat_wrapper, \
     plot_scalar_summary_wrapper, plot_transition_graph_wrapper, copy_h5_metadata_to_yaml_wrapper, \
-    plot_verbose_pdfs_wrapper, plot_mean_group_position_pdf_wrapper, plot_kl_divergences_wrapper, \
-    plot_explained_behavior_wrapper
+    plot_verbose_pdfs_wrapper, plot_mean_group_position_pdf_wrapper
 
 
 def get_groups_command(index_file):
@@ -266,47 +265,5 @@ def plot_verbose_position_heatmaps(index_file, output_file):
     '''
 
     fig = plot_verbose_pdfs_wrapper(index_file, output_file)
-
-    return fig
-
-
-def plot_kl_divergences_command(index_file, output_file, oob=False):
-    '''
-    Plots a Kullback-Leibler divergence of each session pdf to the mean pdf of all sessions
-
-    Parameters
-    ----------
-    index_file (str): path to index file.
-    output_file (str): filename for syllable duration graph.
-
-    Returns
-    -------
-    fig (pyplot figure): figure to graph in Jupyter Notebook.
-    outliers (pd.Dataframe): dataframe of outlier sessions
-    '''
-
-    fig, outliers = plot_kl_divergences_wrapper(index_file, output_file, oob=oob)
-
-    return fig, outliers
-
-
-def plot_explained_behavior_command(model_fit, output_file, count='usage', figsize=(10,5)):
-    '''
-    Graph syllable usages from fit model data.
-
-    Parameters
-    ----------
-    model_fit (str): path to fit model.
-    index_file (str): path to index file
-    output_file (str): name of saved usages graph.
-    figsize (tuple): size of the figure
-    count (str): method to calculate syllable usages, either by 'frames' or 'usage'
-
-    Returns
-    -------
-    fig (pyplot figure): figure to graph in Jupyter Notebook.
-    '''
-
-    fig = plot_explained_behavior_wrapper(model_fit, output_file, count=count, figsize=figsize)
 
     return fig

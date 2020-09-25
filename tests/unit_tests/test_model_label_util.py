@@ -4,7 +4,7 @@ from unittest import TestCase
 from moseq2_viz.util import parse_index
 from moseq2_viz.model.util import results_to_dataframe
 from moseq2_viz.model.label_util import syll_onset, syll_duration, syll_id, to_df, \
-    get_syllable_muteness_ordering, get_sorted_syllable_stat_ordering
+    get_syllable_mutation_ordering, get_sorted_syllable_stat_ordering
 
 class TestTrainLabelUtils(TestCase):
 
@@ -63,7 +63,7 @@ class TestTrainLabelUtils(TestCase):
 
         complete_df, _ = results_to_dataframe(test_model, sorted_index)
 
-        new_ordering = get_syllable_muteness_ordering(complete_df, ctrl_group, exp_group, max_sylls=None, stat='usage')
+        new_ordering = get_syllable_mutation_ordering(complete_df, ctrl_group, exp_group, max_sylls=None, stat='usage')
         ordering = get_sorted_syllable_stat_ordering(complete_df, stat='usage')
 
         assert list(new_ordering) != list(range(40))

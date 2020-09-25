@@ -8,7 +8,6 @@ import re
 import os
 import h5py
 import numpy as np
-import pandas as pd
 from glob import glob
 import ruamel.yaml as yaml
 from cytoolz import curry, compose
@@ -55,6 +54,37 @@ def camel_to_snake(s):
     subbed = _underscorer1.sub(r'\1_\2', s)
     return _underscorer2.sub(r'\1_\2', subbed).lower()
 
+def get_index_hits(config_data, metadata, key, v):
+    '''
+    Searches for matching keys in given index file metadata dict.
+    Returns list of booleans indicating that a session was found.
+
+    Parameters
+    ----------
+    config_data (dict): dictionary containing boolean search filters [lowercase, negative]
+    metadata (list): list of session metadata dict objects
+    key (str): metadata key being searched for
+    v (str): value of the corresponding key to be found
+
+    Returns
+    -------
+    hits (list): list of booleans indicating the found sessions to be updated in add_group_wrapper()
+    '''
+
+    if config_data['lowercase'] and config_data['negative']:
+        # Convert keys to lowercase and return inverse selection
+        hits = [re.search(v, meta[key].lower()) is None for meta in metadata]
+    elif config_data['lowercase']:
+        # Convert keys to lowercase
+        hits = [re.search(v, meta[key].lower()) is not None for meta in metadata]
+    elif config_data['negative']:
+        # Return inverse selection
+        hits = [re.search(v, meta[key]) is None for meta in metadata]
+    else:
+        # Default search
+        hits = [re.search(v, meta[key]) is not None for meta in metadata]
+
+    return hits
 
 def check_video_parameters(index: dict) -> dict:
     '''
@@ -278,19 +308,6 @@ def parse_index(index_file: str) -> tuple:
 
     return index, uuid_sorted
 
-def index_to_dataframe(index_path):
-    with open(index_path, 'r') as f:
-        index_data = yaml.safe_load(f)
-
-    files = index_data['files']
-    meta = [f['metadata'] for f in files]
-
-    meta_df = pd.DataFrame(meta)
-    tmp_df = pd.DataFrame(files)
-
-    df = pd.concat([meta_df, tmp_df], axis=1)
-
-    return index_data, df
 
 def get_sorted_index(index_file: str) -> dict:
     '''
