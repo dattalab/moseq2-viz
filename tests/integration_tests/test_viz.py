@@ -7,12 +7,13 @@ import pandas as pd
 import networkx as nx
 import ruamel.yaml as yaml
 from unittest import TestCase
+import matplotlib.pyplot as plt
 from moseq2_viz.util import parse_index
 from moseq2_viz.scalars.util import scalars_to_dataframe
 from moseq2_viz.model.util import parse_model_results, get_transition_matrix, \
     get_syllable_statistics, relabel_by_usage, get_syllable_slices, results_to_dataframe
 from moseq2_viz.viz import clean_frames, convert_ebunch_to_graph, floatRgb, convert_transition_matrix_to_ebunch, \
-    graph_transition_matrix, make_crowd_matrix, position_plot, scalar_plot, plot_syll_stats_with_sem
+    graph_transition_matrix, make_crowd_matrix, position_plot, scalar_plot, plot_syll_stats_with_sem, save_fig
 
 def get_fake_movie():
     edge_size = 40
@@ -111,6 +112,16 @@ def get_ebunch(max_syllable=40, ret_trans=False):
         return trans_mats, usages
 
 class TestViz(TestCase):
+
+    def test_save_fig(self):
+
+        fig = plt.figure(1, figsize=(1,1))
+
+        save_fig(fig, output_file='data/test_fig')
+        assert os.path.exists('data/test_fig.png')
+        assert os.path.exists('data/test_fig.pdf')
+        os.remove('data/test_fig.png')
+        os.remove('data/test_fig.pdf')
 
     def test_clean_frames(self):
         frames = get_fake_movie()

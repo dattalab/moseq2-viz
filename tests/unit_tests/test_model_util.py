@@ -7,6 +7,7 @@ from copy import deepcopy
 import ruamel.yaml as yaml
 from functools import reduce
 from unittest import TestCase
+from moseq2_viz.util import parse_index, get_index_hits
 from moseq2_viz.model.util import relabel_by_usage, h5_to_dict
 from moseq2_viz.model.util import (
     _get_transitions, calculate_syllable_usage, compress_label_sequence, find_label_transitions,
@@ -19,6 +20,24 @@ def make_sequence(lbls, durs):
     return np.array(reduce(add, arr))
 
 class TestModelUtils(TestCase):
+
+    def test_index_hits(self):
+
+        test_index = 'data/test_index.yaml'
+        index = parse_index(test_index)[0]
+        metadata = [f['metadata'] for f in index['files']]
+
+        config_data = {
+            'lowercase': True,
+            'negative': False,
+        }
+
+        key = 'SessionName'
+        v = '012'
+
+        hits = get_index_hits(config_data, metadata, key, v)
+
+        assert len(hits) == 2
 
     def test_merge_models(self):
         model_paths = 'data/'

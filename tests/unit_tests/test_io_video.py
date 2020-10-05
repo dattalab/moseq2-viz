@@ -6,10 +6,22 @@ import ruamel.yaml as yaml
 from unittest import TestCase
 from moseq2_viz.util import check_video_parameters, parse_index
 from moseq2_viz.model.util import parse_model_results, relabel_by_usage
-from moseq2_viz.io.video import write_crowd_movies, write_frames_preview
+from moseq2_viz.io.video import write_crowd_movies, write_frames_preview, write_crowd_movie_info_file
 
 
 class TestIOVideo(TestCase):
+
+    def test_write_crowd_movie_info_file(self):
+
+        model_path = 'data/test_model.p'
+        model_fit = parse_model_results(joblib.load(model_path))
+        index_file = 'data/test_index.yaml'
+        output_dir = 'data/'
+
+        write_crowd_movie_info_file(model_path, model_fit, index_file, output_dir)
+
+        assert os.path.exists(os.path.join(output_dir, 'info.yaml'))
+        os.remove(os.path.join(output_dir, 'info.yaml'))
 
     def test_write_crowd_movies(self):
 
