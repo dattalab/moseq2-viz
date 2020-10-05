@@ -4,15 +4,14 @@ Syllable transition graph creation and utility functions.
 
 '''
 
-import re
 import math
 import tqdm
+import warnings
 import numpy as np
 import networkx as nx
 from copy import deepcopy
 import matplotlib.pyplot as plt
 from collections import OrderedDict
-from networkx.drawing.nx_agraph import graphviz_layout
 
 def get_trans_graph_groups(model_fit, index, sorted_index):
     '''
@@ -154,6 +153,7 @@ def normalize_matrix(init_matrix, normalize):
     -------
     init_matrix (2D np.array): normalized transition matrix
     '''
+    warnings.filterwarnings('ignore')
 
     if normalize == 'bigram':
         init_matrix /= init_matrix.sum()
@@ -226,7 +226,7 @@ def get_transition_matrix(labels, max_syllable=100, normalize='bigram',
 
 def convert_ebunch_to_graph(ebunch):
     '''
-    Convert transition matrices to tranistion DAGs.
+    Convert transition matrices to transition DAGs.
 
     Parameters
     ----------
@@ -431,7 +431,6 @@ def get_usage_dict(usages):
 
     return usages
 
-
 def handle_graph_layout(trans_mats, usages, anchor):
     '''
     Computes node usage "anchors"/positions.
@@ -475,13 +474,13 @@ def make_graph(tm, ebunch_anchor, edge_threshold, usages_anchor, speeds=None, sp
     Parameters
     ----------
     tm (np.ndarray): syllable transition matrix
-    ebunch_anchor (list):
+    ebunch_anchor (list): list of edge transitions from the first transition matrix
     edge_threshold (float): value to threshold transition edges
     usages_anchor (int): node placement reference value
 
     Returns
     -------
-    graph (nx.DiGraph):
+    graph (nx.DiGraph): generated networkx directed Graph with edge weights == syllable transition probabilities
     '''
 
     ebunch, orphans = convert_transition_matrix_to_ebunch(
@@ -529,6 +528,8 @@ def make_difference_graphs(trans_mats, usages, group, group_names, usages_anchor
 
     for i, tm in enumerate(trans_mats):
         for j, tm2 in enumerate(trans_mats[i + 1:]):
+            if len(tm2) == 0:
+                continue
             # get graph difference
             df = tm2 - tm
 
@@ -575,9 +576,9 @@ def make_difference_graphs(trans_mats, usages, group, group_names, usages_anchor
             group_names.append(curr_name)
 
             if np.array(ax).all() != None:
-                draw_graphs(graph, curr_name, weight, pos, node_color='w', node_size=node_size,
-                node_edge_colors=node_edge_color, arrows=arrows, edge_colors=edge_colors,
-                font_size=font_size, ax=ax, i=i, j=i+1)
+                draw_graph(graph, curr_name, weight, pos, node_color='w', node_size=node_size,
+                           node_edge_colors=node_edge_color, arrows=arrows, edge_colors=edge_colors,
+                           font_size=font_size, ax=ax, i=i, j=i+1)
 
     return usages, group_names, difference_graphs, widths, node_sizes, node_edge_colors, scalars
 
@@ -649,9 +650,9 @@ def make_transition_graphs(trans_mats, usages, group, group_names, usages_anchor
 
         # Draw network to matplotlib figure
         if np.array(ax).all() != None:
-            draw_graphs(graph, group_names, width, pos, node_color='w',
-                        node_size=node_size, node_edge_colors='r', arrows=arrows,
-                        font_size=font_size, ax=ax, i=i, j=i)
+            draw_graph(graph, group_names, width, pos, node_color='w',
+                       node_size=node_size, node_edge_colors='r', arrows=arrows,
+                       font_size=font_size, ax=ax, i=i, j=i)
 
         node_edge_colors.append('r')
         graphs.append(graph)
@@ -696,9 +697,7 @@ def get_pos(graph_anchor, layout, nnodes):
         pos = nx.circular_layout(graph_anchor)
     elif type(layout) is str and layout.lower() == 'spectral':
         pos = nx.spectral_layout(graph_anchor)
-    elif type(layout) is str and layout.lower()[:8] == 'graphviz':
-        pos = graphviz_layout(graph_anchor)
-    elif type(layout) is dict:
+    elif isinstance(layout, (dict, OrderedDict)):
         # user passed pos directly
         pos = layout
     else:
@@ -706,9 +705,9 @@ def get_pos(graph_anchor, layout, nnodes):
 
     return pos
 
-def draw_graphs(graph, groups, width, pos, node_color,
-                node_size, node_edge_colors, ax, arrows=False,
-                font_size=12, edge_colors='k', i=0, j=0):
+def draw_graph(graph, groups, width, pos, node_color,
+               node_size, node_edge_colors, ax, arrows=False,
+               font_size=12, edge_colors='k', i=0, j=0):
     '''
     Draws transition graph to existing matplotlib axes.
 

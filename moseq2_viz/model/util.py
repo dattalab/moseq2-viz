@@ -126,13 +126,14 @@ def _whiten_all(pca_scores: Dict[str, np.ndarray], center=True):
 
     return whitened_scores
 
-def get_syllable_usages(model_data, count):
+def get_syllable_usages(model_data, max_syllable=100, count='usage'):
     '''
     Computes the overall syllable usages, and returns a 1D array of their corresponding usage values.
 
     Parameters
     ----------
     model_data (dict): dict object of modeling results
+    max_syllable (int): number of syllables to compute the mean usage for.
     count (str): option for whether to count syllable usages; by 'frames', or 'usage'.
 
     Returns
@@ -141,7 +142,7 @@ def get_syllable_usages(model_data, count):
     '''
 
     # process the syllable usages over all frames/emissions in the entire cohort
-    usages_by_mouse = np.array([list(get_syllable_statistics(labels, count=count)[0].values()) \
+    usages_by_mouse = np.array([list(get_syllable_statistics(labels, count=count, max_syllable=max_syllable)[0].values()) \
                                 for labels in model_data['labels']])
 
     syllable_usages = np.sum(usages_by_mouse, axis=0) / np.sum(usages_by_mouse)

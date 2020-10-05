@@ -1,3 +1,4 @@
+import math
 import joblib
 import unittest
 import numpy as np
@@ -7,12 +8,11 @@ from copy import deepcopy
 import ruamel.yaml as yaml
 from functools import reduce
 from unittest import TestCase
-from moseq2_viz.model.trans_graph import _get_transitions, get_transition_matrix
 from moseq2_viz.model.util import (relabel_by_usage, h5_to_dict,
     calculate_syllable_usage, compress_label_sequence, find_label_transitions,
     get_syllable_statistics, parse_model_results, merge_models, get_mouse_syllable_slices,
     syllable_slices_from_dict, get_syllable_slices, calculate_label_durations, labels_to_changepoints,
-    results_to_dataframe, _gen_to_arr, normalize_pcs, _whiten_all, simulate_ar_trajectory)
+    results_to_dataframe, _gen_to_arr, normalize_pcs, _whiten_all, simulate_ar_trajectory, get_syllable_usages)
 
 def make_sequence(lbls, durs):
     arr = [[x] * y for x, y in zip(lbls, durs)]
@@ -20,50 +20,28 @@ def make_sequence(lbls, durs):
 
 class TestModelUtils(TestCase):
 
+    def test_get_syllable_usages(self):
+
+        test_model = 'data/test_model.p'
+
+        model = parse_model_results(joblib.load(test_model))
+
+        mean_usages = get_syllable_usages(model, count='usage')
+        assert len(mean_usages) == 100
+        assert math.isclose(sum(mean_usages), 1.0)
+
+        mean_usages = get_syllable_usages(model, max_syllable=40, count='usage')
+        assert len(mean_usages) == 40
+        assert math.isclose(sum(mean_usages), 1.0)
+
     def test_merge_models(self):
+
         model_paths = 'data/'
         ext = 'p'
         model_data = merge_models(model_paths, ext)
 
         assert len(model_data.keys()) > 0
         assert len(model_data['keys']) == 2
-
-    def test_get_transitions(self):
-        true_labels = [1, 2, 4, 1, 5]
-        durs = [3, 4, 2, 6, 7]
-        arr = make_sequence(true_labels, durs)
-
-        trans, locs = _get_transitions(arr)
-
-        assert true_labels[1:] == list(trans), 'syllable labels do not match with the transitions'
-        assert list(np.diff(locs)) == durs[1:-1], 'syllable locations do not match their durations'
-
-    def test_get_transition_martrix(self):
-        model_fit = 'data/test_model.p'
-
-        model_data = parse_model_results(joblib.load(model_fit))
-        labels = model_data['labels']
-        max_syllable = 40
-        normalize = 'bigram'
-        smoothing = 0.0
-        combine = False
-
-        trans_mats = get_transition_matrix(labels, max_syllable, normalize, smoothing, combine)
-
-        assert len(trans_mats) == 2 # number of sessions
-        assert np.asarray(trans_mats).shape == (2, max_syllable+1, max_syllable+1) # ensuring square matrices
-
-        normalize = 'rows'
-        trans_mats = get_transition_matrix(labels, max_syllable, normalize, smoothing, combine)
-
-        assert len(trans_mats) == 2  # number of sessions
-        assert np.asarray(trans_mats).shape == (2, max_syllable + 1, max_syllable + 1)  # ensuring square matrices
-
-        normalize = 'columns'
-        trans_mats = get_transition_matrix(labels, max_syllable, normalize, smoothing, combine)
-
-        assert len(trans_mats) == 2  # number of sessions
-        assert np.asarray(trans_mats).shape == (2, max_syllable + 1, max_syllable + 1)  # ensuring square matrices
 
     def test_get_mouse_syllable_slices(self):
         syllable = 2
