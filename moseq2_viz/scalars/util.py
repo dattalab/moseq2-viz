@@ -11,13 +11,13 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 from itertools import starmap
+from cytoolz import valmap, get
 from multiprocessing import Pool
 from collections import defaultdict
 from sklearn.neighbors import KernelDensity
-from cytoolz import keyfilter, itemfilter, merge_with, curry, valmap, get
+from moseq2_viz.model.util import _get_transitions
 from moseq2_viz.util import (h5_to_dict, strided_app, load_timestamps, read_yaml,
                              h5_filepath_from_sorted, get_timestamps_from_h5)
-from moseq2_viz.model.util import parse_model_results, _get_transitions, relabel_by_usage
 
 
 def _star_itemmap(func, d):
@@ -476,6 +476,7 @@ def handle_feedback_data(scalar_dict, dct, pth, input_file, nframes):
         warnings.warn(f'timestamps for {pth} were not found')
         warnings.warn('This could be due to a missing/incorrectly named timestamp file in that session directory.')
         warnings.warn('If the file does exist, ensure it has the correct name/location and re-extract the session.')
+        timestamps = []
         pass
     if len(timestamps) != nframes:
         warnings.warn(f'Timestamps not equal to number of frames for {pth}, skipping')
