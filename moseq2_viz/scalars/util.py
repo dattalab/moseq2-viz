@@ -1,9 +1,9 @@
-import tqdm
 import h5py
 import os
 import pandas as pd
 import numpy as np
 import warnings
+from tqdm.auto import tqdm
 from moseq2_viz.util import h5_to_dict, strided_app, load_timestamps, read_yaml
 from moseq2_viz.model.util import parse_model_results, _get_transitions, relabel_by_usage
 
@@ -236,28 +236,18 @@ def get_scalar_triggered_average(scalar_map, model_labels, max_syllable=40, nlag
 
 def scalars_to_dataframe(index, include_keys=['SessionName', 'SubjectName', 'StartTime'],
                          include_model=None, disable_output=False,
-                         include_feedback=None, force_conversion=True):
+                         include_pcs=False, npcs=10, include_feedback=None,
+                         force_conversion=True):
 
-    scalar_dict = {}
-
-    # loop through files, load scalars
-    # TODO: checks for legacy scalars
-
+    #TODO add pcs
     uuids = list(index['files'].keys())
     dset = h5_to_dict(h5py.File(index['files'][uuids[0]]['path'][0], 'r'), 'scalars')
-
     tmp = convert_legacy_scalars(dset, force=force_conversion)
 
     if tmp is not None:
         dset = tmp
 
     scalar_names = list(dset.keys())
-
-    for scalar in scalar_names:
-        scalar_dict[scalar] = []
-
-    for key in include_keys:
-        scalar_dict[key] = []
 
     include_labels = False
     skip = []
@@ -278,10 +268,6 @@ def scalars_to_dataframe(index, include_keys=['SessionName', 'SubjectName', 'Sta
         labels['usage'] = {k: v for k, v in zip(uuids, labels_usage)}
         labels['frames'] = {k: v for k, v in zip(uuids, labels_frames)}
 
-        scalar_dict['model_label'] = []
-        scalar_dict['model_label (sort=usage)'] = []
-        scalar_dict['model_label (sort=frames)'] = []
-
         label_idx = h5_to_dict(index['pca_path'], 'scores_idx')
         for uuid, lbl in labels['raw'].items():
             if len(label_idx[uuid]) != len(lbl):
@@ -293,26 +279,27 @@ def scalars_to_dataframe(index, include_keys=['SessionName', 'SubjectName', 'Sta
 
         include_labels = True
 
-    scalar_dict['group'] = []
-    scalar_dict['uuid'] = []
+    if include_pcs and not os.path.exists(index["pca_path"]):
+        warnings.warn("PCA scores not found at {}".format(index["pca_path"]))
+        include_pcs = False
 
-    if include_feedback:
-        scalar_dict['feedback_status'] = []
-
-    for k, v in tqdm.tqdm(index['files'].items(), disable=disable_output):
+    dfs = []
+    for k, v in tqdm(index['files'].items(), disable=disable_output):
         if k in skip:
             continue
 
-        h5 = h5py.File(v['path'][0], 'r')
-        dset = h5_to_dict(h5, 'scalars')
-        if 'timestamps' in h5:
-            # h5 format as of v0.1.3
-            timestamps = h5['/timestamps'][...]
-        elif 'timestamps' in h5['/metadata']:
-            # h5 format prior to v0.1.3
-            timestamps = h5['/metadata/timestamps'][...]
-        else:
-            raise RunTimeError("Could not find timestamps")
+        _df = pd.DataFrame()
+
+        with h5py.File(v['path'][0], 'r') as h5:
+            dset = h5_to_dict(h5, 'scalars')
+            if 'timestamps' in h5:
+                # h5 format as of v0.1.3
+                timestamps = h5['/timestamps'][()]
+            elif 'timestamps' in h5['/metadata']:
+                # h5 format prior to v0.1.3
+                timestamps = h5['/metadata/timestamps'][()]
+            else:
+                raise RunTimeError("Could not find timestamps")
 
         dct = read_yaml(v['path'][1])
         parameters = dct['parameters']
@@ -346,45 +333,37 @@ def scalars_to_dataframe(index, include_keys=['SessionName', 'SubjectName', 'Sta
             warnings.warn('Timestamps not equal to number of frames for {}'.format(v['path'][0]))
             continue
 
+        # timestamps are the index
+        _df["timestamp"] = timestamps.astype('int32')
+        # _df.set_index("timestamp", inplace=True)
+
         for scalar in scalar_names:
-            scalar_dict[scalar].append(dset[scalar])
+            _df[scalar] = dset[scalar]
 
         for key in include_keys:
-            for i in range(nframes):
-                scalar_dict[key].append(v['metadata'][key])
+            _df[key] = v["metadata"][key]
 
-        for i in range(nframes):
-            scalar_dict['group'].append(v['group'])
-            scalar_dict['uuid'].append(k)
+        _df["group"] = v["group"]
+        _df["uuid"] = k
 
         if include_feedback and feedback_ts is not None:
-
-            for ts in timestamps:
-                hit = np.where(ts.astype('int32') == feedback_ts.astype('int32'))[0]
-                if len(hit) > 0:
-                    scalar_dict['feedback_status'].append(feedback_status[hit])
-                else:
-                    scalar_dict['feedback_status'].append(-1)
-
-        elif include_feedback:
-            for frame in range(nframes):
-                scalar_dict['feedback_status'].append(-1)
+            _df["feedback_status"] = -1
+            _df.loc[feedback_ts.astype('int32'), "feedback_status"] = feedback_status
 
         if include_labels:
-            if k in labels['raw'].keys():
-                for lbl, lbl_usage, lbl_frames in zip(labels['raw'][k],
-                                                      labels['usage'][k],
-                                                      labels['frames'][k]):
-                    scalar_dict['model_label'].append(lbl)
-                    scalar_dict['model_label (sort=usage)'].append(lbl_usage)
-                    scalar_dict['model_label (sort=frames)'].append(lbl_frames)
-            else:
-                for i in range(nframes):
-                    scalar_dict['model_label'].append(np.nan)
+            _df["model_label"] = labels["raw"][k]
+            _df["model_label (sort=usage)"] = labels["usage"][k]
+            _df["model_label (sort=frames)"] = labels["frames"][k]
+        else:
+            _df["model_label"] = np.nan
 
-    for scalar in scalar_names:
-        scalar_dict[scalar] = np.concatenate(scalar_dict[scalar])
+        if include_pcs:
+            with h5py.File(index["pca_path"], "r") as f:
+                use_pcs = f["/scores/{}".format(k)][~np.isnan(label_idx[k]), :npcs]
+            for _pc in range(npcs):
+                _df["pc{:02d}".format(_pc)] = use_pcs[:, _pc]
 
-    scalar_df = pd.DataFrame(scalar_dict)
+        dfs.append(_df)
 
+    scalar_df = pd.concat(dfs, axis=0)
     return scalar_df
