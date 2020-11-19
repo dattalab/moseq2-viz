@@ -10,6 +10,7 @@ import h5py
 import joblib
 import numpy as np
 from glob import glob
+from typing import Union
 import ruamel.yaml as yaml
 from cytoolz import curry, compose
 from cytoolz.curried import valmap
@@ -211,23 +212,25 @@ def load_timestamps(timestamp_file, col=0):
     return ts
 
 
-def parse_index(index_file: str) -> tuple:
+def parse_index(index: Union[str, dict]) -> tuple:
     '''
     Load an index file, and use extraction UUIDs as entries in a sorted index.
 
     Parameters
     ----------
-    index_file
+    index (str or dict): if str, must be a path to the index file. If dict,
+        must be the unsorted index.
 
     Returns
     -------
     index (dict): loaded index file contents in a dictionary
-    uuid_sorted (dict): dictionary of a list of files and pca_score path.
+    sorted_index (dict): index where the files have been sorted by UUID and pca_score path.
     '''
 
-    index_dir = dirname(index_file)
+    if isinstance(index, str):
+        index_dir = dirname(index)
+        index = read_yaml(index)
 
-    index = read_yaml(index_file)
     files = index['files']
 
     sorted_index = groupby('uuid', files)

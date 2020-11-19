@@ -173,7 +173,7 @@ def _whiten_all(pca_scores: Dict[str, np.ndarray], center=True):
 
     return whitened_scores
 
-def get_syllable_usages(model_data, max_syllable=100, count='usage'):
+def get_normalized_syllable_usages(model_data, max_syllable=100, count='usage'):
     '''
     Computes the overall syllable usages, and returns a 1D array of their corresponding usage values.
 
@@ -403,41 +403,77 @@ def calculate_syllable_durations(label_arr: Union[dict, np.ndarray]) -> Union[di
         return np.diff(inds)
 
 
-def calculate_syllable_usage(labels: Union[dict, pd.DataFrame], usage_type='rle', normalize=False):
+def syll_onset(labels: np.ndarray) -> np.ndarray:
     '''
-    Calculates a dictionary of uuid to syllable usage key-values pairs.
+    Finds indices of syllable onsets.
 
     Parameters
     ----------
-    label_arr (dict or pd.DataFrame): list or DataFrame of predicted syllable labels.
-    usage_type (str): either rle (run-length encoding or syllable trials) or occupancy
-        (number of frames a syllable occupies)
-    normalize (bool): if True, normalizes syllable usages so that they sum to 1.
+    labels (np.ndarray): array of syllable labels for a mouse.
 
     Returns
     -------
-    (dict): dictionary of syllable usage probabilities.
+    indices (np.ndarray): an array of indices denoting the beginning of each syllables.
     '''
-    if usage_type not in ('rle', 'occupancy'):
-        raise ValueError(f'usage_type must be "rle" or "occupancy". You entered "{usage_type}"')
 
-    if isinstance(labels, pd.DataFrame):
-        if 'syllable' not in labels:
-            raise ValueError('dataframe does not contain the "syllables" column. Cannot compute usages')
-        if usage_type == 'rle':
-            usage_df = pd.Series(compress_label_sequence(labels['syllable'])).value_counts(normalize=normalize)
-        else:
-            usage_df = labels['syllable'].value_counts(normalize=normalize)
-    elif isinstance(labels, (pd.Series, np.ndarray)):
-        if usage_type == 'rle':
-            usage_df = pd.Series(compress_label_sequence(labels)).value_counts(normalize=normalize)
-        else:
-            usage_df = pd.Series(labels).value_counts(normalize=normalize)
-    elif isinstance(labels, (dict, OrderedDict)):
-        return valmap(calculate_syllable_usage, labels)
+    change = np.diff(labels) != 0
+    indices = np.where(change)[0]
+    indices += 1
+    indices = np.concatenate(([0], indices))
+    return indices
+
+
+def syll_duration(labels: np.ndarray) -> np.ndarray:
+    '''
+    Computes the duration of each syllable.
+
+    Parameters
+    ----------
+    labels (np.ndarray): array of syllable labels for a mouse.
+
+    Returns
+    -------
+    durations (np.ndarray): array of syllable durations.
+    '''
+
+    onsets = np.concatenate((syll_onset(labels), [labels.size]))
+    durations = np.diff(onsets)
+    return durations
+
+
+def syll_id(labels: np.ndarray) -> np.ndarray:
+    '''
+    Returns the syllable label at each syllable transition.
+
+    Parameters
+    ----------
+    labels (np.ndarray): array of syllable labels for a mouse.
+
+    Returns
+    -------
+    labels[onsets] (np.ndarray): an array of compressed labels.
+    '''
+
+    onsets = syll_onset(labels)
+    return labels[onsets]
+
+
+def get_syllable_usages(data, max_syllable=100, count='usage'):
+
+    def _convert_to_usage(arr):
+        if count == 'usage':
+            arr = syll_id(arr)
+        return pd.Series(arr).value_counts().reindex(range(max_syllable)).fillna(0)
+
+    # a list of sessions
+    if isinstance(data, list) and isinstance(data[0], (list, np.ndarray)):
+        usages = sum(map(_convert_to_usage, data))
+    elif isinstance(data, dict):
+        usages = sum(map(_convert_to_usage, data.values()))
     else:
-        raise TypeError('labels parameter not dataframe or dict. Cannot use to compute syllable usages')
-    return usage_df
+        raise TypeError('could not understand data parameter. Needs to be list or dict of labels')
+    
+    return dict(usages)
 
 
 def get_syllable_statistics(data, fill_value=-5, max_syllable=100, count='usage'):
@@ -582,7 +618,7 @@ def parse_model_results(model_obj, restart_idx=0, resample_idx=-1,
     ----------
     model_obj (str or results returned from joblib.load): path to the model fit or a loaded model fit
     restart_idx (int): Select which model restart to load. (Only change for models with multiple restarts used)
-    resample_idx (int): Indicates the parsing method according to the shape of the labels array.
+    resample_idx (int): Legacy parameter used to select labels from a specific sampling iteration. Default is the last iteration (-1)
     map_uuid_to_keys (bool): for labels, make a dictionary where each key, value pair
     contains the uuid and the labels for that session.
     sort_labels_by_usage (bool): sort labels by their usages.
@@ -596,13 +632,15 @@ def parse_model_results(model_obj, restart_idx=0, resample_idx=-1,
 
     # reformat labels into something useful
 
-    if type(model_obj) is str and (model_obj.endswith('.p') or model_obj.endswith('.pz')):
-        model_obj = joblib.load(model_obj)
-    elif type(model_obj) is str:
-        raise RuntimeError('Can only parse models saved using joblib that end with .p or .pz')
+    if isinstance(model_obj, dict):
+        output_dict = deepcopy(model_obj)
+    elif isinstance(model_obj, str) and model_obj.endswith(('.p', '.pz')):
+        output_dict = joblib.load(model_obj)
+    else:
+        raise RuntimeError('Can only parse model paths saved using joblib that end with .p or .pz')
 
-    output_dict = deepcopy(model_obj)
-    if type(output_dict['labels']) is list and type(output_dict['labels'][0]) is list:
+    # a bunch of legacy loading
+    if isinstance(output_dict['labels'], list) and isinstance(output_dict['labels'][0], list):
         if np.ndim(output_dict['labels'][0][0]) == 2:
             output_dict['labels'] = [np.squeeze(tmp[resample_idx]) for tmp in output_dict['labels'][restart_idx]]
         elif np.ndim(output_dict['labels'][0][0]) == 1:
@@ -610,7 +648,7 @@ def parse_model_results(model_obj, restart_idx=0, resample_idx=-1,
         else:
             raise RuntimeError('Could not parse model labels')
 
-    if type(output_dict['model_parameters']) is list:
+    if isinstance(output_dict['model_parameters'], list):
         output_dict['model_parameters'] = output_dict['model_parameters'][restart_idx]
 
     if sort_labels_by_usage:
@@ -619,11 +657,11 @@ def parse_model_results(model_obj, restart_idx=0, resample_idx=-1,
         old_nu = deepcopy(output_dict['model_parameters']['nu'])
         for i, sort_idx in enumerate(sorting):
             output_dict['model_parameters']['ar_mat'][i] = old_ar_mat[sort_idx]
-            if type(output_dict['model_parameters']['nu']) is list:
+            if isinstance(output_dict['model_parameters']['nu'], list):
                 output_dict['model_parameters']['nu'][i] = old_nu[sort_idx]
 
     if map_uuid_to_keys:
-        if 'train_list' in output_dict.keys():
+        if 'train_list' in output_dict:
             label_uuids = output_dict['train_list']
         else:
             label_uuids = output_dict['keys']
@@ -640,25 +678,29 @@ def relabel_by_usage(labels, fill_value=-5, count='usage'):
 
     Parameters
     ----------
-    labels (list of np.array of ints): labels loaded from a model fit
+    labels (list or dict): label sequences loaded from a model fit
     fill_value (int): value prepended to modeling results to account for nlags
     count (str): how to count syllable usage, either by number of emissions (usage), or number of frames (frames)
 
     Returns
     -------
-    labels (list of np.array of ints): labels resorted by usage
+    labels (list or dict): label sequences sorted by usage
     sorting (list): the new label sorting. The index corresponds to the new label,
     while the value corresponds to the old label.
     '''
+    assert count in ('usage', 'frames'), 'count must be "usage" or "frames"'
 
     sorted_labels = deepcopy(labels)
-    usages, _ = get_syllable_statistics(labels, fill_value=fill_value, count=count)
-    sorting = []
+    usages = get_syllable_usages(labels, count=count)
 
-    for w in sorted(usages, key=usages.get, reverse=True):
-        sorting.append(w)
+    sorting = sorted(usages, key=usages.get, reverse=True)
 
-    for i, v in enumerate(labels):
+    if isinstance(labels, list):
+        _iter = enumerate(labels)
+    elif isinstance(labels, dict):
+        _iter = labels.items()
+
+    for i, v in _iter:
         for j, idx in enumerate(sorting):
             sorted_labels[i][np.where(v == idx)] = j
 
@@ -783,6 +825,40 @@ def results_to_dataframe(model_dict, index_dict, sort=False, count='usage', max_
     df = pd.DataFrame.from_dict(data=df_dict)
 
     return df, label_df
+
+
+def compute_syllable_onset(labels):
+    onset = pd.Series(labels).diff().fillna(1) != 0
+    return onset.to_numpy()
+
+
+def prepare_model_dataframe(model_path, pca_path):
+    '''
+    Creates a dataframe from syllable labels to be aligned with scalars.
+    '''
+    mdl = parse_model_results(model_path, map_uuid_to_keys=True)
+    labels = mdl['labels']
+
+    usage, _ = relabel_by_usage(labels, count='usage')
+    frames, _ = relabel_by_usage(labels, count='frames')
+
+    scores_idx = h5_to_dict(pca_path, path='scores_idx')
+
+    # make sure all pcs align with labels
+    if not all(len(labels[k]) == len(v) for k, v in scores_idx.items()):
+        raise ValueError('PC scores don\'t align with labels')
+
+    _df = pd.concat((pd.DataFrame({
+        'uuid': k,
+        'labels (original)': v,
+        'labels (usage sort)': usage[k],
+        'labels (frames sort)': frames[k],
+        'onset': compute_syllable_onset(v),
+        'frame index': scores_idx[k]
+    }) for k, v in labels.items()), ignore_index=True)
+
+    return _df
+
 
 def simulate_ar_trajectory(ar_mat, init_points=None, sim_points=100):
     '''

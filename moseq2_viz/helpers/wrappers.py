@@ -28,6 +28,18 @@ from moseq2_viz.model.util import (relabel_by_usage, parse_model_results, merge_
                                    results_to_dataframe, get_best_fit,
                                    make_separate_crowd_movies, labels_to_changepoints)
 
+
+def _make_directories(crowd_movie_path, plot_path):
+
+    # Set up output directory to save crowd movies in
+    if crowd_movie_path is not None:
+        os.makedirs(crowd_movie_path, exist_ok=True)
+    # Set up output directory to save plots in
+    if plot_path is not None:
+        os.makedirs(dirname(plot_path))
+
+
+
 def init_wrapper_function(index_file=None, model_fit=None, output_dir=None, output_file=None):
     '''
     Helper function that will optionally load the index file and a trained model given their respective paths.
@@ -47,15 +59,7 @@ def init_wrapper_function(index_file=None, model_fit=None, output_dir=None, outp
     model_data (dict): loaded model dictionary containing modeling results
     '''
 
-    # Set up output directory to save crowd movies in
-    if output_dir is not None:
-        if not exists(output_dir):
-            os.makedirs(output_dir)
-
-    # Set up output directory to save plots in
-    if output_file is not None:
-        if not exists(dirname(output_file)):
-            os.makedirs(dirname(output_file))
+    _make_directories(output_dir, output_file)
 
     # Get sorted index dict
     if index_file is not None:
@@ -70,7 +74,7 @@ def init_wrapper_function(index_file=None, model_fit=None, output_dir=None, outp
         # minimum distance between them relative to first model in list
         if isdir(model_fit):
             model_data = merge_models(model_fit, 'p')
-        elif model_fit.endswith('.p') or model_fit.endswith('.pz'):
+        elif model_fit.endswith(('.p', '.pz')):
             model_data = parse_model_results(joblib.load(model_fit))
         elif model_fit.endswith('.h5'):
             # TODO: add h5 file model parsing capability
@@ -334,7 +338,7 @@ def plot_verbose_pdfs_wrapper(index_file, output_file):
     '''
 
     # Get loaded index dicts via decorator
-    index, sorted_index, _ = init_wrapper_function(index_file, output_file=output_file)
+    _, sorted_index, _ = init_wrapper_function(index_file, output_file=output_file)
 
     # Load scalar dataframe to compute position PDF heatmap
     scalar_df = scalars_to_dataframe(sorted_index)

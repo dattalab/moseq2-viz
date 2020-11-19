@@ -16,7 +16,7 @@ from moseq2_viz.model.util import (relabel_by_usage, h5_to_dict, retrieve_pcs_fr
     get_syllable_statistics, parse_model_results, merge_models, get_mouse_syllable_slices,
     syllable_slices_from_dict, get_syllable_slices, calculate_syllable_durations, labels_to_changepoints,
     results_to_dataframe, _gen_to_arr, normalize_pcs, _whiten_all, simulate_ar_trajectory, whiten_pcs,
-    make_separate_crowd_movies, get_syllable_usages)
+    make_separate_crowd_movies, get_normalized_syllable_usages)
 
 def make_sequence(lbls, durs):
     arr = [[x] * y for x, y in zip(lbls, durs)]
@@ -100,11 +100,11 @@ class TestModelUtils(TestCase):
 
         model = parse_model_results(joblib.load(test_model))
 
-        mean_usages = get_syllable_usages(model, count='usage')
+        mean_usages = get_normalized_syllable_usages(model, count='usage')
         assert len(mean_usages) == 100
         assert math.isclose(sum(mean_usages), 1.0)
 
-        mean_usages = get_syllable_usages(model, max_syllable=40, count='usage')
+        mean_usages = get_normalized_syllable_usages(model, max_syllable=40, count='usage')
         assert len(mean_usages) == 40
         assert math.isclose(sum(mean_usages), 1.0)
 

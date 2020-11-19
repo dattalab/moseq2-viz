@@ -10,14 +10,15 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 from itertools import starmap
-from cytoolz import valmap, get
 from multiprocessing import Pool
 from collections import defaultdict
+from cytoolz import valmap, get, merge
 from os.path import join, exists, dirname
 from sklearn.neighbors import KernelDensity
-from moseq2_viz.model.util import get_transitions
+from moseq2_viz.model.util import (get_transitions, parse_model_results, relabel_by_usage,
+                                   prepare_model_dataframe)
 from moseq2_viz.util import (h5_to_dict, strided_app, load_timestamps, read_yaml,
-                             h5_filepath_from_sorted, get_timestamps_from_h5)
+                             h5_filepath_from_sorted, get_timestamps_from_h5, parse_index)
 
 
 def _star_itemmap(func, d):
@@ -27,7 +28,6 @@ def _star_itemmap(func, d):
 def star_valmap(func, d):
     keys = list(d.keys())
     return dict(zip(keys, starmap(func, d.values())))
-
 
 
 def convert_pxs_to_mm(coords, resolution=(512, 424), field_of_view=(70.6, 60), true_depth=673.1):
@@ -379,36 +379,6 @@ def process_scalars(scalar_map: dict, include_keys: list, zscore: bool = False) 
     return valmap(np.array, out)
 
 
-def find_and_load_feedback(extract_path, input_path):
-    
-    feedback_path = join(dirname(input_path), 'feedback_ts.txt')
-    if not exists(feedback_path):
-        feedback_path = join(dirname(extract_path), '..', 'feedback_ts.txt')
-
-    if exists(feedback_path):
-        feedback_ts = load_timestamps(feedback_path, 0)
-        feedback_status = load_timestamps(feedback_path, 1)
-        return feedback_ts, feedback_status
-    else:
-        warnings.warn(f'Could not find feedback file for {extract_path}')
-        return None, None
-
-def remove_nans_from_labels(idx, labels):
-    '''
-    Removes the frames from `labels` where `idx` has NaNs in it.
-
-    Parameters
-    ----------
-    idx (list): indices to remove NaN values at.
-    labels (list): label list containing NaN values.
-
-    Returns
-    -------
-    (list): label list excluding NaN values at given indices
-    '''
-
-    return labels[~np.isnan(idx)]
-
 def compute_mouse_dist_to_center(roi, centroid_x_px, centroid_y_px):
     '''
     Given the session's ROI shape and the frame-by-frame (x,y) pixel centroid location
@@ -441,62 +411,9 @@ def compute_mouse_dist_to_center(roi, centroid_x_px, centroid_y_px):
     # Compute distance to center
     return np.hypot(norm_x, norm_y)
 
-def handle_feedback_data(scalar_dict, dct, pth, input_file, nframes):
-    '''
-    Reads recorded neural stimulation timestamps from the given input file or
-     h5 path. Appends the feedback information to the scalar dict to include in the
-     outputted scalar_df.
-
-    Parameters
-    ----------
-    scalar_dict (dict): Session scalar dictionary to add feedback info to
-    dct (dict): Loaded h5 file dict
-    pth (str): Path to feedback data in h5 file
-    input_file (str): Path to feedback timestamps file
-    nframes (int): Number of frames included in current session
-
-    Returns
-    -------
-    scalar_dict (dict): Inputted scalar dict with appended feedback status info key-pairs
-    skip (bool): Indicator for whether loading feedback data has failed, triggers a "continue" in scalars_to_dataframe()
-    '''
-
-    skip = False
-
-    if 'feedback_timestamps' in dct:
-        ts_data = np.array(dct['feedback_timestamps'])
-        feedback_ts, feedback_status = ts_data[:, 0], ts_data[:, 1]
-    else:
-        feedback_ts, feedback_status = find_and_load_feedback(pth, input_file)
-
-    try:
-        timestamps = get_timestamps_from_h5(pth)
-        scalar_dict['timestamp'] = timestamps.astype('int32')
-    except:
-        timestamps = []
-        warnings.warn(f'timestamps for {pth} were not found')
-        warnings.warn('This could be due to a missing/incorrectly named timestamp file in that session directory.')
-        warnings.warn('If the file does exist, ensure it has the correct name/location and re-extract the session.')
-        pass
-    if len(timestamps) != nframes:
-        warnings.warn(f'Timestamps not equal to number of frames for {pth}, skipping')
-        skip = True
-
-    if feedback_ts is not None:
-        for ts in timestamps:
-            hit = np.where(ts.astype('int32') == feedback_ts.astype('int32'))[0]
-            if len(hit) > 0:
-                scalar_dict['feedback_status'] += [feedback_status[hit]]
-            else:
-                scalar_dict['feedback_status'] += [-1]
-    else:
-        scalar_dict['feedback_status'] += [-1] * nframes
-
-    return scalar_dict, skip
-
 
 def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'SubjectName', 'StartTime'],
-                         disable_output=False, include_feedback=None, force_conversion=True):
+                         disable_output=False, force_conversion=True, model_path=None):
     '''
     Generates a dataframe containing scalar values over the course of a recording session.
     If a model string is included, then return only animals that were included in the model
@@ -510,45 +427,24 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
     disable_output (bool): indicate whether to show tqdm output.
     include_feedback (bool): indicate whether to include timestamp data
     force_conversion (bool): force the conversion of centroid_[xy]_px into mm.
+    model_path (str): path to model object to pull labels from and include in the dataframe
 
     Returns
     -------
     scalar_df (pandas DataFrame): DataFrame of loaded scalar values with their selected metadata.
     '''
+    has_model = False
+    if model_path is not None and exists(model_path):
+        labels_df = prepare_model_dataframe(model_path, index['pca_path']).set_index('uuid')
+        has_model = True
 
-    scalar_dict = defaultdict(list)
+    # check if files is dictionary from sorted_index or list from unsorted index, then sort
+    if isinstance(index['files'], list):
+        index = parse_index(index)
 
-    files = index['files']
-    # use dset from first animal to generate a list of scalars
-    try:
-        uuids = list(files.keys())
-        dset = h5_to_dict(h5_filepath_from_sorted(files[uuids[0]]), path='scalars')
-
-        # Get ROI shape to compute distance to center
-        roi = h5_to_dict(h5_filepath_from_sorted(files[uuids[0]]), path='metadata/extraction/roi')['roi'].shape
-        dset['dist_to_center_px'] = compute_mouse_dist_to_center(roi, dset['centroid_x_px'], dset['centroid_y_px'])
-    except:
-        dset = h5_to_dict(h5_filepath_from_sorted(files[0]), path='scalars')
-
-        # Get ROI shape to compute distance to center
-        roi = h5_to_dict(h5_filepath_from_sorted(files[0]), path='metadata/extraction/roi')['roi'].shape
-        dset['dist_to_center_px'] = compute_mouse_dist_to_center(roi, dset['centroid_x_px'], dset['centroid_y_px'])
-
-    # only convert if the dataset is legacy and conversion is forced
-    if is_legacy(dset) and force_conversion:
-        dset = convert_legacy_scalars(dset, force=force_conversion)
-
-    # generate a list of scalars
-    scalar_names = list(dset.keys())
-
-    try:
-        iter_items = files.items()
-    except:
-        iter_items = enumerate(files)
-
+    dfs = []
     # Iterate through index file session info and paths
-    for k, v in tqdm(iter_items, disable=disable_output):
-
+    for k, v in tqdm(index['files'].items(), disable=disable_output):
         # Get path to extraction h5 file
         pth = h5_filepath_from_sorted(v)
 
@@ -559,44 +455,34 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
         roi = h5_to_dict(pth, path='metadata/extraction/roi')['roi'].shape
         dset['dist_to_center_px'] = compute_mouse_dist_to_center(roi, dset['centroid_x_px'], dset['centroid_y_px'])
 
-        # get extraction parameters for this h5 file
-        dct = read_yaml(v['path'][1])
-        parameters = dct['parameters']
+        timestamps = get_timestamps_from_h5(pth)
 
         # convert scalar names into modern format if they are legacy
         if is_legacy(dset) and force_conversion:
             dset = convert_legacy_scalars(dset, force=force_conversion)
 
-        # add scalar data for this animal
-        for scalar in scalar_names:
-            scalar_dict[scalar] += dset[scalar].tolist()
+        dset = merge(dset, {
+            'group': v['group'],
+            'uuid': k ,
+            'h5_path': pth,
+            'timestamps': timestamps,
+            'frame index': np.arange(len(timestamps))}, {
+            key: v['metadata'][key] for key in include_keys
+        })
 
-        # Count number of session frames
-        nframes = len(dset[scalar_names[0]])
+        _tmp_df = pd.DataFrame(dset)
 
-        # add index metadata from `include_keys`
-        for key in include_keys:
-            # every frame should have the same amount of metadata
-            scalar_dict[key] += [v['metadata'][key]] * nframes
+        # make sure we have labels for this UUID before merging
+        if has_model and k in labels_df.index:
+            _tmp_df = pd.merge(_tmp_df, labels_df.loc[k], on='frame index', how='outer')
 
-        # Add metadata to dict to fit in DataFrame
-        scalar_dict['group'] += [v['group']] * nframes
-        scalar_dict['uuid'] += [k] * nframes
-
-        # Optionally append neural feedback data to scalar_dict
-        if include_feedback:
-            scalar_dict, skip = handle_feedback_data(scalar_dict, dct, pth, parameters['input_file'], nframes)
-            if skip:
-                continue
-
-    # turn each key in scalar_names into a numpy array
-    for scalar in scalar_names:
-        scalar_dict[scalar] = np.array(scalar_dict[scalar])
+        dfs.append(_tmp_df)
 
     # return scalar_dict
-    scalar_df = pd.DataFrame(scalar_dict)
+    scalar_df = pd.concat(dfs, ignore_index=True)
 
     return scalar_df
+
 
 def make_a_heatmap(position):
     '''
@@ -617,10 +503,9 @@ def make_a_heatmap(position):
     n_grid = 50
 
     # Set up the bounds over which to build the KDE
-    X, Y = np.meshgrid(* \
-                           [np.linspace(*np.percentile(d, [0.01, 99.99]), num=n_grid)
-                            for d in (position[:, 0], position[:, 1])
-                            ])
+    X, Y = np.meshgrid(*[np.linspace(*np.percentile(d, [0.01, 99.99]), num=n_grid)
+                         for d in (position[:, 0], position[:, 1])
+                       ])
     position_grid = np.hstack((X.ravel()[:, None], Y.ravel()[:, None]))
     bandwidth = (X.max() - X.min()) / 25.0
 
