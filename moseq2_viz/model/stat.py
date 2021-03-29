@@ -7,7 +7,7 @@ from itertools import combinations
 from statsmodels.stats.multitest import multipletests
 
 
-def get_session_mean_df(df, statistic="usage", max_syllable=40):
+def get_session_mean_df(df, statistic="usage", max_syllable=40, type='syllable'):
     """
     Compute a given mean syllable statistic grouped by groups and UUIDs.
 
@@ -25,11 +25,14 @@ def get_session_mean_df(df, statistic="usage", max_syllable=40):
     df_pivot (pd.DataFrame): Mean syllable statistic per session; shape=(n_sessions, max_syllable)
     """
 
-    df_pivot = (
-        df[df.syllable < max_syllable]
-            .pivot_table(index=["group", "uuid"], columns="syllable", values=statistic)
-            .replace(np.nan, 0)
-    )
+    if type == 'syllable':
+        df_pivot = (
+            df[df.syllable < max_syllable]
+                .pivot_table(index=["group", "uuid"], columns="syllable", values=statistic)
+                .replace(np.nan, 0)
+        )
+    else:
+        df_pivot = df.groupby(['uuid', 'group'], as_index=False).mean()
 
     return df_pivot
 
@@ -74,7 +77,7 @@ def ztest_vect(d1, d2):
     return np.minimum(1.0, 2 * stats.norm.cdf(-np.abs(mu1 - mu2) / std))
 
 
-def bootstrap_group_means(df, group1, group2, statistic="usage", max_syllable=40):
+def bootstrap_group_means(df, group1, group2, statistic="usage", max_syllable=40, type='syllable'):
     """
 
     Parameters
@@ -93,10 +96,14 @@ def bootstrap_group_means(df, group1, group2, statistic="usage", max_syllable=40
     """
 
     # get separated group variables
-    group_stat = get_session_mean_df(df, statistic, max_syllable)
+    group_stat = get_session_mean_df(df, statistic, max_syllable, type=type)
 
     groups = (group1, group2)
-    usages = {k: group_stat.loc[k].values for k in groups}
+    if type == 'syllable':
+        usages = {k: group_stat.loc[k].values for k in groups}
+    else:
+        usages = {k: np.reshape(group_stat[group_stat['group'] == k][statistic].values, (-1,1)) for k in groups}
+
     boots = {k: bootstrap_me(v) for k, v in usages.items()}
 
     return boots
@@ -403,9 +410,7 @@ def compute_pvalues_for_group_pairs(
 
     p_vals_allperm = {}
     for pair in combinations(group_names, 2):
-        p_vals_allperm[pair] = (
-                                       (null_zs[pair] > real_zs_within_group[pair]).sum(0) + 1
-                               ) / n_perm
+        p_vals_allperm[pair] = ((null_zs[pair] > real_zs_within_group[pair]).sum(0) + 1) / n_perm
 
     # summarize into df
     df_pval = pd.DataFrame(p_vals_allperm)
@@ -470,7 +475,6 @@ def dunns_z_test_permute_within_group_pairs(
 
     return null_zs_within_group, real_zs_within_group
 
-
 def run_pairwise_stats(df, group1, group2, test_type="mw", **kwargs):
     """Wrapper for staistical test
 
@@ -494,8 +498,33 @@ def run_pairwise_stats(df, group1, group2, test_type="mw", **kwargs):
     elif test_type == "t_test":
         return ttest(df, group1, group2, **kwargs)
 
+def run_pairwise_scalar_stats(scalar_df, group1, group2, test_type='t_test', **kwargs):
+    """
 
-def mann_whitney(df, group1, group2, statistic="usage", max_syllable=40, **kwargs):
+    Parameters
+    ----------
+    scalar_df
+    group1
+    group2
+    test_type
+    kwargs
+
+    Returns
+    -------
+
+    """
+
+    test_types = ["mw", "z_test", "t_test"]
+    if test_type not in test_types:
+        raise ValueError(f"`test_type` must one of {test_types}")
+    if test_type == "mw":
+        return mann_whitney(scalar_df, group1, group2, type='scalar', **kwargs)
+    elif test_type == "z_test":
+        return ztest(scalar_df, group1, group2, type='scalar', **kwargs)
+    elif test_type == "t_test":
+        return ttest(scalar_df, group1, group2, type='scalar', **kwargs)
+
+def mann_whitney(df, group1, group2, statistic="usage", max_syllable=40, type='syllable', **kwargs):
     """
     Runs a Mann-Whitney hypothesis test on two given groups to find significant syllables.
     Also runs multiple corrections test to find syllables to exclude.
@@ -519,12 +548,18 @@ def mann_whitney(df, group1, group2, statistic="usage", max_syllable=40, **kwarg
     exclude_sylls (list): list of syllables that were excluded via multiple comparisons test.
     """
     # get mean grouped data
-    grouped_data = get_session_mean_df(df, statistic, max_syllable).reset_index()
+    grouped_data = get_session_mean_df(df, statistic, max_syllable, type=type).reset_index()
 
     vc = grouped_data.group.value_counts().loc[[group1, group2]]
     n_per_group = vc.values
 
-    merged_usages_all = grouped_data[range(max_syllable)].values
+    if type == 'syllable':
+        merged_usages_all = grouped_data[range(max_syllable)].values
+    else:
+        group1_stat = np.mean(grouped_data[grouped_data['group'] == group1][statistic].values)
+        group2_stat = np.mean(grouped_data[grouped_data['group'] == group2][statistic].values)
+        merged_usages_all = np.vstack([group1_stat, group2_stat])
+
     _, N_s = merged_usages_all.shape
 
     df_mw_real = pd.DataFrame(
@@ -535,10 +570,10 @@ def mann_whitney(df, group1, group2, statistic="usage", max_syllable=40, **kwarg
             for s_i in range(N_s)
         ]
     )
-    return get_sig_syllables(df_mw_real, **kwargs)
 
+    return get_sig_syllables(df_mw_real, type=type, **kwargs)
 
-def ztest(df, group1, group2, statistic="usage", max_syllable=40, **kwargs):
+def ztest(df, group1, group2, statistic="usage", max_syllable=40, type='syllable', **kwargs):
     """
     Computes a z hypothesis test on 2 (bootstrapped) selected groups.
     Also runs multiple corrections test to find syllables to exclude.
@@ -560,14 +595,29 @@ def ztest(df, group1, group2, statistic="usage", max_syllable=40, **kwargs):
     pvals_ztest_boots (np.array): Computed array of p-values
     syllables_to_include (list): List of significant syllables after multiple corrections.
     """
-    boots = bootstrap_group_means(df, group1, group2, statistic, max_syllable)
+    boots = bootstrap_group_means(df, group1, group2, statistic, max_syllable, type=type)
+
     # do a ztest on the bootstrap distributions of your 2 conditions
     pvals_ztest_boots = ztest_vect(boots[group1], boots[group2])
     df_z = pd.DataFrame(pvals_ztest_boots, columns=["pvalue"])
-    return get_sig_syllables(df_z, **kwargs)
+    return get_sig_syllables(df_z, type=type, **kwargs)
 
+def normalize(group_in_df):
+    """
 
-def ttest(df, group1, group2, statistic="usage", max_syllable=40, **kwargs):
+    Parameters
+    ----------
+    group_in_df
+
+    Returns
+    -------
+    group_out_df
+    """
+
+    group_out_df = (group_in_df - np.min(group_in_df)) / (np.max(group_in_df) - np.min(group_in_df))
+    return group_out_df
+
+def ttest(df, group1, group2, statistic="usage", max_syllable=40, type='syllable', **kwargs):
     """
     Computes a t-hypothesis test on 2 selected groups to find significant syllables.
     Also runs multiple corrections test to find syllables to exclude.
@@ -590,17 +640,21 @@ def ttest(df, group1, group2, statistic="usage", max_syllable=40, **kwargs):
     syllables_to_include (list): List of significant syllables after multiple corrections.
     """
     # get separated group variables
-    group_stat = get_session_mean_df(df, statistic, max_syllable)
+    group_stat = get_session_mean_df(df, statistic, max_syllable, type=type)
     groups = (group1, group2)
-    usages = {k: group_stat.loc[k].values for k in groups}
+    if type == 'syllable':
+        usages = {k: group_stat.loc[k].values for k in groups}
+    else:
+        usages = {k: normalize(group_stat[group_stat['group'] == k][statistic].values) for k in groups}
+
     # run t-test
     df_t = pd.DataFrame(
         stats.ttest_ind(usages[group1], usages[group2]), index=["t", "pvalue"]
     ).T
-    return get_sig_syllables(df_t, **kwargs)
 
+    return get_sig_syllables(df_t, type=type, **kwargs)
 
-def get_sig_syllables(df_pvals, thresh=0.05, mc_method="fdr_bh"):
+def get_sig_syllables(df_pvals, thresh=0.05, mc_method="fdr_bh", type='syllable'):
     """
     Runs multiple p-value comparisons test given a set alpha Threshold, and multiple corrections method.
 
@@ -617,10 +671,14 @@ def get_sig_syllables(df_pvals, thresh=0.05, mc_method="fdr_bh"):
     ]
     df_pvals["is_sig"] = df_pvals["p_adj"] <= thresh
     n_sig = df_pvals["is_sig"].sum()
-    print(f"Found {n_sig} syllables that pass threshold {thresh} with {mc_method}")
 
     # print list of significant syllables
     sig_sylls = list(df_pvals[df_pvals["is_sig"] == True].index)
-    print(sig_sylls)
+
+    if type == 'syllable':
+        print(f"Found {n_sig} syllables that pass threshold {thresh} with {mc_method}")
+        print(sig_sylls)
+    else:
+        print(f"Found {n_sig} groups that pass threshold {thresh} with {mc_method}")
 
     return df_pvals
