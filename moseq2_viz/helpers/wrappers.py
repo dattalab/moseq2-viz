@@ -194,7 +194,7 @@ def plot_scalar_summary_wrapper(index_file, output_file, groupby='group', colors
     scalar_df = scalars_to_dataframe(sorted_index)
 
     # Plot Scalar Summary with specified groupings and colors
-    plt_scalars, _ = scalar_plot(scalar_df, group_var=groupby, show_scalars=show_scalars, colors=colors, headless=True)
+    plt_scalars, _ = scalar_plot(scalar_df, group_var=groupby, show_scalars=show_scalars, colors=colors, headless=False)
 
     # Save figures
     save_fig(plt_scalars, output_file, suffix='_summary')

@@ -164,6 +164,7 @@ def write_crowd_movies(sorted_index, config_data, ordering, labels, label_uuids,
                             raw_size=config_data.get('raw_size', (512, 424)),
                             scale=config_data.get('scale', 1),
                             pad=config_data.get('pad', 30),
+                            frame_path=config_data.get('frame_path', 'frames'),
                             legacy_jitter_fix=config_data.get('legacy_jitter_fix', False),
                             **clean_params)
 

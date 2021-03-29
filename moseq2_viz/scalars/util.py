@@ -427,6 +427,8 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
     -------
     scalar_df (pandas DataFrame): DataFrame of loaded scalar values with their selected metadata.
     '''
+    warnings.filterwarnings('ignore', '', FutureWarning)
+
     has_model = False
     if model_path is not None and exists(model_path):
         labels_df = prepare_model_dataframe(model_path, index['pca_path']).set_index('uuid')
@@ -445,8 +447,11 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
         dset = h5_to_dict(pth, 'scalars')
 
         # Get ROI shape to compute distance to center
-        roi = h5_to_dict(pth, path='metadata/extraction/roi')['roi'].shape
-        dset['dist_to_center_px'] = compute_mouse_dist_to_center(roi, dset['centroid_x_px'], dset['centroid_y_px'])
+        try:
+            roi = h5_to_dict(pth, path='metadata/extraction/roi')['roi'].shape
+            dset['dist_to_center_px'] = compute_mouse_dist_to_center(roi, dset['centroid_x_px'], dset['centroid_y_px'])
+        except:
+            pass
 
         timestamps = get_timestamps_from_h5(pth)
 
@@ -484,6 +489,7 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
             _tmp_df['timestamps'] = _tmp_df['timestamps'].interpolate()
 
         dfs.append(_tmp_df)
+        warnings.filterwarnings('ignore', '', UserWarning)
 
     # return scalar_dict
     scalar_df = pd.concat(dfs, ignore_index=True)
