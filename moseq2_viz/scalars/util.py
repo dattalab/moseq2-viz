@@ -430,9 +430,11 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
     warnings.filterwarnings('ignore', '', FutureWarning)
 
     has_model = False
+    model_uuids = None
     if model_path is not None and exists(model_path):
         labels_df = prepare_model_dataframe(model_path, index['pca_path']).set_index('uuid')
         has_model = True
+        model_uuids = labels_df.reset_index().uuid.unique()
 
     # check if files is dictionary from sorted_index or list from unsorted index, then sort
     if isinstance(index['files'], list):
@@ -441,6 +443,9 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
     dfs = []
     # Iterate through index file session info and paths
     for k, v in tqdm(index['files'].items(), disable=disable_output):
+        if has_model:
+            if k not in model_uuids:
+                continue
         # Get path to extraction h5 file
         pth = h5_filepath_from_sorted(v)
         # Load scalars from h5
