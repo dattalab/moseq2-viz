@@ -7,9 +7,9 @@ Each wrapper function executes the functionality from end-to-end given it's depe
 '''
 import os
 import shutil
-import matplotlib as mpl
 from glob import glob
 from ruamel import yaml
+import matplotlib as mpl
 from tqdm.auto import tqdm
 from cytoolz import keyfilter, groupby
 from os.path import exists, join, dirname, basename
@@ -251,7 +251,7 @@ def plot_syllable_stat_wrapper(model_fit, index_file, output_file, stat='usage',
 
     return fig
 
-def plot_mean_group_position_pdf_wrapper(index_file, output_file, normalize=False):
+def plot_mean_group_position_pdf_wrapper(index_file, output_file, normalize=False, norm_color=mpl.colors.LogNorm()):
     '''
     Computes the position PDF for each session, averages the PDFs within each group,
     and plots the averaged PDFs.
@@ -277,14 +277,14 @@ def plot_mean_group_position_pdf_wrapper(index_file, output_file, normalize=Fals
     pdfs, groups, _, _ = compute_all_pdf_data(scalar_df, normalize=normalize)
 
     # Plot the average Position PDF Heatmap for each group
-    fig = plot_mean_group_heatmap(pdfs, groups)
+    fig = plot_mean_group_heatmap(pdfs, groups, normalize=normalize, norm_color=norm_color)
 
     # Save figure
     save_fig(fig, output_file, bbox_inches='tight')
 
     return fig
 
-def plot_verbose_pdfs_wrapper(index_file, output_file, normalize=True):
+def plot_verbose_pdfs_wrapper(index_file, output_file, normalize=False, norm_color=mpl.colors.LogNorm()):
     '''
     Wrapper function that computes the PDF for the mouse position for each session in the index file.
     Will plot each session's heatmap with a "SessionName: Group"-like title.
@@ -310,7 +310,7 @@ def plot_verbose_pdfs_wrapper(index_file, output_file, normalize=True):
     pdfs, groups, sessions, subjectNames = compute_all_pdf_data(scalar_df, normalize=normalize)
 
     # Plot all session heatmaps in columns organized by groups
-    fig = plot_verbose_heatmap(pdfs, sessions, groups, subjectNames)
+    fig = plot_verbose_heatmap(pdfs, sessions, groups, subjectNames, normalize=normalize, norm_color=norm_color)
 
     # Save figure
     save_fig(fig, output_file, bbox_inches='tight')

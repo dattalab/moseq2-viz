@@ -506,7 +506,7 @@ def plot_mean_group_heatmap(pdfs, groups, normalize=True, norm_color=mpl.colors.
     return fig
 
 
-def plot_verbose_heatmap(pdfs, sessions, groups, subjectNames, normalize=False):
+def plot_verbose_heatmap(pdfs, sessions, groups, subjectNames, normalize=False, norm_color=mpl.colors.LogNorm()):
     '''
     Plots the PDF position heatmap for each session, titled with the group and subjectName.
 
@@ -547,7 +547,7 @@ def plot_verbose_heatmap(pdfs, sessions, groups, subjectNames, normalize=False):
                 _min_val = (avg_hist[avg_hist > 0]).min()
                 avg_hist = (avg_hist + _min_val) / (avg_hist.max() + _min_val)
 
-            im = a.imshow(avg_hist, norm=mpl.colors.LogNorm())
+            im = a.imshow(avg_hist, norm=norm_color)
             fig.colorbar(im, ax=a, fraction=0.046, pad=0.04, format='%.0e')
 
             a.set_xticks([])
