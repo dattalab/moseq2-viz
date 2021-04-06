@@ -11,19 +11,24 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
 def get_Xy_values(syll_means, unique_groups, stat='usage'):
     '''
+    Computes the syllable mean statistics for each session, stored in X. Computes and corresponding
+     mapped group name value for each of the sessions to be tracked when plotting the values in the embedding steps.
 
     Parameters
     ----------
-    syll_means
-    unique_groups
+    syll_means (pd DataFrame): Dataframe of syllable mean statistics
+    unique_groups (1D list): list of unique groups in the syll_means dataframe.
+    stat (str): statistic column to read from the syll_means df.
 
     Returns
     -------
-
+    X (2D np.array): mean syllable statistics for each session. (nsessions x nsyllables)
+    y (1D list): list of group names corresponding to each row in X.
+    mapping (dict): dictionary conataining mappings from group string to integer for later embedding.
+    rev_mapping (dict): inverse mapping dict to retrieve the group names given their mapped integer value.
     '''
 
     X, y = [], []
-
 
     for u in syll_means.uuid.unique():
         uuid_idx = syll_means['uuid'] == u
@@ -40,17 +45,21 @@ def get_Xy_values(syll_means, unique_groups, stat='usage'):
 
 def run_2d_embedding(mean_df, stat='usage', output_file='2d_embedding.pdf', embedding='LDA', n_components=2):
     '''
+    Computes a 2D embedding of the mean syllable statistic of choice. User selects an embedding type, a stat
+     to compute the embedding on, and provides a dataframe with the mean syllable information.
+     The function will output a figure of the 2D representation of the embedding.
 
     Parameters
     ----------
-    mean_df
-    output_file
-    embedding
-    n_components
+    mean_df (pd DataFrame): Dataframe of the mean syllable statistics for all sessions
+    output_file (str): path to saved outputted figure
+    embedding (str): type of embedding to run. Either ['lda', 'pca']
+    n_components (int): Number of components to compute.
 
     Returns
     -------
-
+    fig (matplotlib figure): figure containing plotted 2d embedding.
+    ax (matplonlib axes): axes instance for plotted figure.
     '''
 
     if embedding.lower() == 'lda':
@@ -81,24 +90,25 @@ def plot_embedding(L,
                    embedding='LDA',
                    x_dim=0,
                    y_dim=1,
-                   symbols = "o*v^s"):
+                   symbols="o*v^s"):
     '''
 
     Parameters
     ----------
-    L
-    y
-    mapping
-    rev_mapping
-    output_file
-    embedding
-    x_dim
-    y_dim
-    symbols
+    L (2D np.array): the embedding representations of the mean syllable statistic to plot.
+    y (1D list): list of group names corresponding to each row in L.
+    mapping (dict): dictionary conataining mappings from group string to integer for later embedding.
+    rev_mapping (dict): inverse mapping dict to retrieve the group names given their mapped integer value.
+    output_file (str): path to saved outputted figure
+    embedding (str): type of embedding to run. Either ['lda', 'pca'].
+    x_dim (int): component number to graph on x-axis
+    y_dim (int): component number to graph on y-axis
+    symbols (str): symbols to use to draw different groups.
 
     Returns
     -------
-
+    fig (matplotlib figure): figure containing plotted 2d embedding.
+    ax (matplonlib axes): axes instance for plotted figure.
     '''
 
     fig, ax = plt.subplots(1, 1, figsize=(16, 16), facecolor='w')

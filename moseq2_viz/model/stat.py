@@ -500,18 +500,21 @@ def run_pairwise_stats(df, group1, group2, test_type="mw", **kwargs):
 
 def run_pairwise_scalar_stats(scalar_df, group1, group2, test_type='t_test', **kwargs):
     """
+    Runs statistical pairwise tests to compare two group's mean scalar data.
+     Returning p-value dfs indicating whether the difference between the two groups' scalars are
+     statistically significant.
 
     Parameters
     ----------
-    scalar_df
-    group1
-    group2
-    test_type
-    kwargs
+    scalar_df (pd DataFrame)
+    group1 (str): Name of first group
+    group2 (str): Name of second group
+    test_type (str): one of ["mw", "z_test", "t_test"], specifying which type of statistical test
+    kwargs (dict): extra keyword arguments
 
     Returns
     -------
-
+    df_pvals (pd.DataFrame): DataFrame listing the p-values and whether the scalars are significant
     """
 
     test_types = ["mw", "z_test", "t_test"]
@@ -604,14 +607,15 @@ def ztest(df, group1, group2, statistic="usage", max_syllable=40, type='syllable
 
 def normalize(group_in_df):
     """
+    Normalizes the inputted DataFrame.
 
     Parameters
     ----------
-    group_in_df
+    group_in_df (pd.DataFrame): DataFrame to normalize.
 
     Returns
     -------
-    group_out_df
+    group_out_df (pd.DataFrame): Feature scaled DataFrame.
     """
 
     group_out_df = (group_in_df - np.min(group_in_df)) / (np.max(group_in_df) - np.min(group_in_df))
@@ -639,6 +643,7 @@ def ttest(df, group1, group2, statistic="usage", max_syllable=40, type='syllable
     p (np.array): Computed array of p-values
     syllables_to_include (list): List of significant syllables after multiple corrections.
     """
+
     # get separated group variables
     group_stat = get_session_mean_df(df, statistic, max_syllable, type=type)
     groups = (group1, group2)
@@ -666,6 +671,7 @@ def get_sig_syllables(df_pvals, thresh=0.05, mc_method="fdr_bh", type='syllable'
     -------
     df_pvals (pd.DataFrame): updated dataframe listing adjusted p-values
     """
+
     df_pvals["p_adj"] = multipletests(df_pvals.pvalue, alpha=thresh, method=mc_method)[
         1
     ]

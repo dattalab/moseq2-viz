@@ -13,18 +13,23 @@ from sklearn.model_selection import StratifiedShuffleSplit
 
 def _classify(features, labels, classifier, train_ind, test_ind):
     '''
+    Trains the inputted classifier object on the provided training data, and then tests the model
+     on the provided test data. Returning predicted labels and the model performance score.
 
     Parameters
     ----------
-    features
-    labels
-    classifier
-    train_ind
-    test_ind
+    features (2D numpy array): syllable statistics for each session.
+    labels (1D list): group names corresponding to each index in the features array.
+    classifier (sklearn OneVsRestClassifier instance): classifier to train and test.
+    train_ind (1d list): indices of training data within features and labels
+    test_ind (1d list): indices of testing data within features and labels
 
     Returns
     -------
-
+    classifier (sklearn OneVsRestClassifier instance): trained classifier
+    labels (1d list): 1d list of true label names for the predicted test data
+    pred_labels (1d list): 1d list of model predicted test labels.
+    score (float): percentage value indicating model accuracy.
     '''
 
     classifier.fit(features[train_ind], labels[train_ind])
@@ -40,16 +45,18 @@ def _classify(features, labels, classifier, train_ind, test_ind):
 
 def select_model(model_type, C, penalty):
     '''
+    Returns the initialized model object with user defined tuning parameters.
 
     Parameters
     ----------
-    model_type
-    C
-    penalty
+    model_type (str): type of model to initialize; ['logistic_regression', 'svc', 'linearsvc', 'rf']
+    C (float): model regularization value.
+    penalty (str): model penalty type; ['l1', 'l2']
 
     Returns
     -------
-
+    model (sklearn model Instance): initialized model.
+    model_hyparams (dict): dict of model hyperparameters.
     '''
 
     if model_type == "logistic_regression":
@@ -73,17 +80,18 @@ def select_model(model_type, C, penalty):
 
 def compute_aucs(ys, true_labels, scores, calc_auc=False):
     '''
+    Computes the ROC_AUC score based on the model's prediction performance.
 
     Parameters
     ----------
-    ys
-    true_labels
-    scores
-    calc_auc
+    ys (1d list): list of all unique label values.
+    true_labels (1d list): list of true label values.
+    scores (list): list of scores for each model in the statrified classification
+    calc_auc (bool): indicates whether to compute the AUCs
 
     Returns
     -------
-
+    aucs (1d list): list of ROC-AUC score values for each prediction
     '''
 
     aucs = []
@@ -101,24 +109,30 @@ def classify_stratified(features, labels, labels_for_stratification,
                         model_type="logistic_regression", C=1.0, penalty='l2',
                         n_cpu=-1, n_fold=10, calc_auc=True, test_size=0.2, whiten=False):
     '''
+    Trains and tests multiple OneVsRest Classifiers using StratifiedShuffleSplit to obtain differently arranged
+     splits of the data to train the models on.
 
     Parameters
     ----------
-    features
-    labels
-    labels_for_stratification
-    model_type
-    C
-    penalty
-    n_cpu
-    n_fold
-    calc_auc
-    test_size
-    whiten
+    features (2D numpy array): syllable statistics for each session.
+    labels (1D list): group names corresponding to each index in the features array.
+    labels_for_stratification (1D list): group names corresponding to each index in the features array.
+    model_type (str): type of model to initialize; ['logistic_regression', 'svc', 'linearsvc', 'rf']
+    C (float): model regularization value.
+    penalty (str): model penalty type; ['l1', 'l2']
+    n_cpu (int): number of cpus to dedicate to model training and testing
+    n_fold (int): number of splits to stratify the data by.
+    calc_auc (bool): indicates whether to compute an AUC score for the model
+    test_size (float): indicates the proportion to split the train-test data. Values are between (0, 1).
+    whiten (bool): indicates whether to whiten the features prior to model training.
 
     Returns
     -------
-
+    classifiers (1d list): list of trained classifiers.
+    true_labels (2d list): list of true label value lists for each corresponding classifier
+    pred_labels (2d list): list of predicted label value lists for each corresponding classifier
+    scores (1d list): list of classifier performance scores.
+    aucs (1d list): list of classifier ROC-AUC scores.
     '''
 
     ys = np.unique(labels)
@@ -150,17 +164,22 @@ def classify_stratified(features, labels, labels_for_stratification,
 
 def run_classifier(mean_df, stat='usage', output_file='confusion_matrix.pdf', normalize=True):
     '''
+    Main access point to train and test stratified classifiers on MoSeq data, accessible from the
+     MoSeq2-Results-Extension Notebook.
+     Function will also generate a confusion matrix displaying the trained classifier results.
 
     Parameters
     ----------
-    mean_df
-    stat
-    output_file
-    normalize
+    mean_df (pd.DataFrame): mean syllable statistics dataframe.
+    stat (str): statistic to train classifiers on.
+    output_file (str): path to file to save confusion matrix figure.
+    normalize (bool): indicates whether to normalize the confusion matrix color scheme.
 
     Returns
     -------
-
+    return_dict (dict): dict containing all classifier results.
+    fig (matplotlib figure): figure containing plotted confusion matrix.
+    ax (matplonlib axes): axes instance for plotted figure.
     '''
 
     syllable_df = mean_df.groupby(['syllable', 'uuid', 'group'], as_index=False).mean()
@@ -177,6 +196,16 @@ def run_classifier(mean_df, stat='usage', output_file='confusion_matrix.pdf', no
                                              output_file=output_file,
                                              normalize=normalize)
 
+    return_dict = {
+        'classifiers': classifiers,
+        'true_labels': true_labels,
+        'pred_labels': pred_labels,
+        'scores': scores,
+        'aucs': aucs
+    }
+
+    return return_dict, fig, ax
+
 def compute_group_confusion_matrix(true_labels,
                                    pred_labels,
                                    mapping,
@@ -184,19 +213,22 @@ def compute_group_confusion_matrix(true_labels,
                                    title='Group Confusion Matrix',
                                    normalize=True):
     '''
+    Computes and graphs a confusion matrix based on the true and predicted label results from a trained
+     classifier instance.
 
     Parameters
     ----------
-    true_labels
-    pred_labels
-    mapping
-    output_file
-    title
-    normalize
+    true_labels (2d list): list of true labels for each classifier's stratified set of true values.
+    pred_labels (2d list): list of predicted labels from each classifier's stratified set of predicted values.
+    mapping (dict): dict containing group name to integer mappings keep track of label names.
+    output_file (str): path to saved outputted figure in.
+    title (str): figure title.
+    normalize (bool): indicates whether to normalize the confusion matrix color scheme.
 
     Returns
     -------
-
+    fig (matplotlib figure): figure containing plotted confusion matrix.
+    ax (matplonlib axes): axes instance for plotted figure.
     '''
 
     # stack the results
