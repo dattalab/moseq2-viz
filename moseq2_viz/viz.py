@@ -9,13 +9,13 @@ import cv2
 import h5py
 import warnings
 import numpy as np
-import pandas as pd
 import seaborn as sns
 import matplotlib as mpl
 from tqdm.auto import tqdm
 from os.path import dirname
 from scipy.stats import mode
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 from moseq2_viz.model.util import sort_syllables_by_stat, sort_syllables_by_stat_difference
 
 
@@ -461,6 +461,9 @@ def plot_syll_stats_with_sem(scalar_df, syll_info=None, sig_sylls=None, stat='us
                        join=join, dodge=True, ci=68, ax=ax, hue_order=groups,
                        palette=colors)
 
+    # where some data has already been plotted to ax
+    handles, labels = ax.get_legend_handles_labels()
+
     # add syllable labels if they exist
     if syll_info is not None:
         mean_xlabels = []
@@ -476,8 +479,13 @@ def plot_syll_stats_with_sem(scalar_df, syll_info=None, sig_sylls=None, stat='us
             markings.append(ordering.index(s))
         plt.scatter(markings, [-.005] * len(markings), color='r', marker='*')
 
+        # manually define a new patch
+        patch = mlines.Line2D([], [], color='red', marker='*', linestyle='None',
+                              markersize=9, label='Significant Syllable')
+        handles.append(patch)
+
     # add legend and axis labels
-    legend = ax.legend(frameon=False, bbox_to_anchor=(1, 1))
+    legend = ax.legend(handles=handles, frameon=False, bbox_to_anchor=(1, 1))
     plt.xlabel(xlabel, fontsize=12)
     sns.despine()
 
