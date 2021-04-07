@@ -68,7 +68,7 @@ def run_2d_embedding(mean_df, stat='usage', output_file='2d_embedding.pdf', embe
         embedder = PCA(n_components=n_components)
     else:
         print('Unsupported input. Only input embedding="lda" or "pca".')
-        return
+        return None, None
 
     syllable_df = mean_df.groupby(['syllable', 'uuid', 'group'], as_index=False).mean()
 
@@ -77,6 +77,9 @@ def run_2d_embedding(mean_df, stat='usage', output_file='2d_embedding.pdf', embe
     X, y, mapping, rev_mapping = get_Xy_values(syllable_df, unique_groups, stat=stat)
 
     L = embedder.fit_transform(X, y)
+    if L.shape[1] <= 1:
+        print("Not enough dimensions to plot, try a different embedding method.")
+        return None, None
 
     fig, ax = plot_embedding(L, y, mapping, rev_mapping, output_file=output_file, embedding=embedding)
 
