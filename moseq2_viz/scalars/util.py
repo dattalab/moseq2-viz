@@ -488,6 +488,10 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
 
             _tmp_df = pd.merge(_tmp_df, labels_df.loc[k], on=merge_on, how='outer')
             _tmp_df = _tmp_df.sort_values(by='syllable index').reset_index(drop=True)
+
+            # filter included keys to only those that exist in the dataset dataframe
+            include_keys = [ik for ik in include_keys if ik in _tmp_df.columns]
+
             # fill any NaNs for metadata columns
             _tmp_df[include_keys + ['uuid', 'h5_path', 'group']] = _tmp_df[include_keys + ['uuid', 'h5_path', 'group']].ffill().bfill()
             # interpolate NaN timestamp values
