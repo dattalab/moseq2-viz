@@ -408,8 +408,8 @@ def scalar_plot(scalar_df, sort_vars=['group', 'uuid'], group_var='group',
     return g.fig, g.axes
 
 
-def plot_syll_stats_with_sem(scalar_df, stat='usage', ordering='stat', max_sylls=40, groups=None, ctrl_group=None,
-                             exp_group=None, colors=None, join=False, figsize=(10, 5)):
+def plot_syll_stats_with_sem(scalar_df, syll_info=None, sig_sylls=None, stat='usage', ordering='stat', max_sylls=40,
+                             groups=None, ctrl_group=None, exp_group=None, colors=None, join=False, figsize=(10, 5)):
     '''
     Plots a line and/or point-plot of a given pre-computed syllable statistic (usage, duration, or speed),
     with a SEM error bar with respect to the group.
@@ -419,6 +419,9 @@ def plot_syll_stats_with_sem(scalar_df, stat='usage', ordering='stat', max_sylls
     Parameters
     ----------
     scalar_df (pd.DataFrame): dataframe containing the statistical information about syllable data [usages, durs, etc.]
+    syll_info (dict): dictionary of syllable numbers mapped to dict containing the label, description and crowd movie path.
+     If provided, will add x-tick markers with the labels for each syllable.
+    sig_sylls (1d list): List of syllable numbers that are statistically significant to optionally mark in the graph.
     stat (str): choice of statistic to plot: either usage, duration, or speed
     ordering (str, list, None): "stat" for sorting syllables by their average `stat`. "diff" for sorting syllables by
         the difference in `stat` between `exp_group` and `ctrl_group`. If a list, the user should supply
@@ -458,6 +461,22 @@ def plot_syll_stats_with_sem(scalar_df, stat='usage', ordering='stat', max_sylls
                        join=join, dodge=True, ci=68, ax=ax, hue_order=groups,
                        palette=colors)
 
+    # add syllable labels if they exist
+    if syll_info is not None:
+        mean_xlabels = []
+        for o in (ordering):
+            mean_xlabels.append(f'{syll_info[o]["label"]} - {o}')
+
+        plt.xticks(range(max_sylls), mean_xlabels, rotation=90)
+
+    # if a list of significant syllables is given, mark the syllables above the x-axis
+    if sig_sylls is not None:
+        markings = []
+        for s in sig_sylls:
+            markings.append(ordering.index(s))
+        plt.scatter(markings, [-.005] * len(markings), color='r', marker='*')
+
+    # add legend and axis labels
     legend = ax.legend(frameon=False, bbox_to_anchor=(1, 1))
     plt.xlabel(xlabel, fontsize=12)
     sns.despine()
