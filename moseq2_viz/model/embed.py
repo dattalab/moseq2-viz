@@ -117,7 +117,7 @@ def plot_embedding(L,
     fig, ax = plt.subplots(1, 1, figsize=(16, 16), facecolor='w')
 
     # Create color and symbol combination
-    colors = sns.color_palette(n_colors=int(((len(y) + 1) / (len(symbols) - 1))))
+    colors = sns.color_palette(n_colors=max(1, int(((len(y) + 1) / (len(symbols) - 1)))))
     symbols, colors = zip(*list(product(symbols, colors)))
 
     # Set figure axes
