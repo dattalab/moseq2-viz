@@ -13,13 +13,13 @@ import matplotlib as mpl
 from tqdm.auto import tqdm
 from cytoolz import keyfilter, groupby
 from os.path import exists, join, dirname, basename
-from moseq2_viz.scalars.util import scalars_to_dataframe, compute_all_pdf_data
+from moseq2_viz.scalars.util import scalars_to_dataframe, compute_all_pdf_data, compute_group_scalar_mean_df
 from moseq2_viz.io.video import write_crowd_movies, write_crowd_movie_info_file
 from moseq2_viz.util import (parse_index, get_index_hits, get_metadata_path, clean_dict,
                              h5_to_dict, recursive_find_h5s)
 from moseq2_viz.model.trans_graph import get_trans_graph_groups, compute_and_graph_grouped_TMs
 from moseq2_viz.viz import (plot_syll_stats_with_sem, scalar_plot, plot_mean_group_heatmap,
-                            plot_verbose_heatmap, save_fig, plot_cp_comparison)
+                            plot_verbose_heatmap, save_fig, plot_cp_comparison, plot_group_scalar_violin_plots)
 from moseq2_viz.model.util import (relabel_by_usage, parse_model_results,
                                    get_best_fit, compute_behavioral_statistics,
                                    make_separate_crowd_movies, labels_to_changepoints)
@@ -200,6 +200,45 @@ def plot_scalar_summary_wrapper(index_file, output_file, groupby='group', colors
     save_fig(plt_scalars, output_file, suffix='_summary')
 
     return scalar_df
+
+def plot_scalar_violin_plot_wrapper(index_file, output_file, stat='velocity_2d_mm', n_boots=10000, thresh=None, order=None, fig_size=(10, 7)):
+    '''
+    Plots violin plots of the selected scalar statistic for each unique group found in the index file.
+     The violin plots represent the mean bootstrapped values for each group's scalar statistic (e.g. velocity_2d_mm).
+
+    Parameters
+    ----------
+    index_file (str): path to index file.
+    output_file (str): path to save graph.
+    stat (str): Name of the statistic being plotted.
+    n_boots (int): Number of bootstrapped examples to generate
+    thresh (None or 2-tuple): Indicates whether to threshold the scalar column.
+     If 2-tuple, will filter scalar_df to only include values within the [min, max] values.
+    order (1D list or None): list to specify the order of the violin plots.
+    figsize (2-tuple): tuple to indicate the outputted figure size.
+
+    Returns
+    -------
+    fig (pyplot figure): figure to show in Jupyter Notebook.
+    '''
+
+    # Get loaded index dict
+    _, sorted_index = init_wrapper_function(index_file, output_file=output_file)
+
+    # Parse index dict files to return pandas DataFrame of all computed scalars from extraction step
+    scalar_df = scalars_to_dataframe(sorted_index)
+
+    group_stat_df = compute_group_scalar_mean_df(scalar_df,
+                                                 stat=stat,
+                                                 n_boots=n_boots,
+                                                 thresh=thresh)
+
+    fig, ax = plot_group_scalar_violin_plots(group_stat_df, stat=stat, order=order, fig_size=fig_size)
+
+    # Save figures
+    save_fig(fig, output_file)
+
+    return fig
 
 
 def plot_syllable_stat_wrapper(model_fit, index_file, output_file, stat='usage', sort=True, count='usage', group=None, max_syllable=40,

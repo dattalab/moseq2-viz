@@ -1,18 +1,18 @@
 import os
 import cv2
-import joblib
 import unittest
 import numpy as np
 import networkx as nx
 from unittest import TestCase
 import matplotlib.pyplot as plt
 from moseq2_viz.util import parse_index, read_yaml
-from moseq2_viz.model.trans_graph import convert_ebunch_to_graph, convert_transition_matrix_to_ebunch,\
-                                         get_transition_matrix, graph_transition_matrix
 from moseq2_viz.scalars.util import scalars_to_dataframe
-from moseq2_viz.model.util import parse_model_results, get_syllable_statistics, \
-    relabel_by_usage, get_syllable_slices, compute_behavioral_statistics
-from moseq2_viz.viz import clean_frames, make_crowd_matrix, position_plot, scalar_plot, plot_syll_stats_with_sem, save_fig
+from moseq2_viz.viz import (clean_frames, make_crowd_matrix, position_plot, scalar_plot,
+                            plot_syll_stats_with_sem, save_fig, plot_group_scalar_violin_plots)
+from moseq2_viz.model.util import (parse_model_results, get_syllable_statistics,
+                                   relabel_by_usage, get_syllable_slices, compute_behavioral_statistics)
+from moseq2_viz.model.trans_graph import (convert_ebunch_to_graph, convert_transition_matrix_to_ebunch,
+                                          get_transition_matrix, graph_transition_matrix)
 
 def get_fake_movie():
     edge_size = 40
@@ -265,6 +265,9 @@ class TestViz(TestCase):
                                        ctrl_group='Grou1', exp_group='Group2', colors=['red', 'orange'])
 
         assert fig is not None
+
+    def test_plot_group_scalar_violin_plots(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()

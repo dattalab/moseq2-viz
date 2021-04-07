@@ -14,7 +14,7 @@ from moseq2_viz.cli import plot_transition_graph, make_crowd_movies
 from moseq2_viz.helpers.wrappers import add_group_wrapper, plot_syllable_stat_wrapper, \
     plot_scalar_summary_wrapper, plot_transition_graph_wrapper, copy_h5_metadata_to_yaml_wrapper, \
     plot_verbose_pdfs_wrapper, plot_mean_group_position_pdf_wrapper, get_best_fit_model_wrapper, \
-    make_crowd_movies_wrapper
+    make_crowd_movies_wrapper, plot_scalar_violin_plot_wrapper
 
 
 def _alias(func, dec_func=None):
@@ -194,3 +194,5 @@ def plot_transition_graph_command(*args, **kwargs):
 plot_mean_group_position_heatmaps_command = _alias(plot_mean_group_position_pdf_wrapper)
 
 plot_verbose_position_heatmaps = _alias(plot_verbose_pdfs_wrapper)
+
+plot_scalar_violin_plot = _alias(plot_scalar_violin_plot_wrapper)

@@ -644,3 +644,36 @@ def plot_cp_comparison(model_results, pc_cps, plot_all=False, best_model=None, b
     sns.despine()
 
     return fig, ax
+
+def plot_group_scalar_violin_plots(data_df, stat='velocity_2d_mm', order=None, figsize=(10, 7)):
+    '''
+    Plots violin plots for each group/column provided in the data_df.
+
+    Parameters
+    ----------
+    data_df (pd.DataFrame): DataFrame containing N rows x M columns, where N represents the number of examples
+     and each column M is a unique group.
+    stat (str): Name of the statistic being plotted.
+    order (1D list or None): list to specify the order of the violin plots.
+    figsize (2-tuple): tuple to indicate the outputted figure size.
+
+    Returns
+    -------
+    fig (pyplot figure): returned violin plot figure.
+    ax (pyplot axis): plotted figure axis object.
+    '''
+
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+    # draw violin plots
+    ax = sns.violinplot(data=data_df, order=order)
+
+    # format axes
+    plt.xticks(rotation=45)
+    plt.ylabel(stat)
+
+    # format plot
+    plt.tight_layout()
+    sns.despine()
+
+    return fig, ax

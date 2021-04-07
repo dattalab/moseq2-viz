@@ -8,12 +8,12 @@ import h5py
 import warnings
 import numpy as np
 import pandas as pd
+from os.path import exists
 from tqdm.auto import tqdm
 from itertools import starmap
-from multiprocessing import Pool
 from collections import defaultdict
 from cytoolz import valmap, get, merge
-from os.path import join, exists, dirname
+from moseq2_viz.model.stat import bootstrap_me
 from moseq2_viz.model.util import get_transitions, prepare_model_dataframe
 from moseq2_viz.util import (h5_to_dict, strided_app, h5_filepath_from_sorted,
                              get_timestamps_from_h5, parse_index)
@@ -634,3 +634,46 @@ def compute_syllable_position_heatmaps(scalar_df, syllable_key='labels (usage so
     hists = filtered_df.groupby(['group', 'uuid', 'SessionName', 'SubjectName', syllable_key]).apply(_compute_histogram)
 
     return hists
+
+def compute_group_scalar_mean_df(scalar_df, stat='velocity_2d_mm', n_boots=10000, thresh=None):
+    '''
+    Computes the bootstrapped mean selected scalar values for all the unique groups found in the inputted scalar dataframe.
+     Optionally allows for ranged thresholding of the scalar column to view populations within certain scalar ranges.
+
+    Parameters
+    ----------
+    scalar_df (pd.DataFrame): DataFrame containing all scalar data + uuid columns for all stacked sessions.
+    stat (str): Scalar column to compute bootstrapped means of.
+    n_boots (int): Number of bootstrapped examples to generate
+    thresh (None or 2-tuple): Indicates whether to threshold the scalar column. If value is a 2-tuple the
+     outputted bootstrapped scalar will be filtered to only include values within the [min, max] values of the tuple.
+
+    Returns
+    -------
+    stat_df (pd.DataFrame): Bootstrapped mean scalar dataframe of shape (nboots rows, unique_groups columns).
+    '''
+
+    unique_groups = sorted(scalar_df.group.unique())
+
+    group_dist_df = {k: [] for k in unique_groups}
+
+    for group in unique_groups:
+        if thresh is not None:
+            thresh_g = scalar_df[(scalar_df[stat] >= thresh[0]) & (scalar_df[stat] <= thresh[1])]
+            mean_g = thresh_g.groupby(['uuid', 'group'], as_index=False).mean()
+        else:
+            mean_g = scalar_df.groupby(['uuid', 'group'], as_index=False).mean()
+
+        # get group-specific scalars
+        group_stat = mean_g[mean_g['group'] == group]
+
+        # get group mean stat scalars
+        group_dist_df[group] = group_stat[stat].values
+
+    # bootstrap groups
+    for g in group_dist_df.keys():
+        group_dist_df[g] = bootstrap_me(group_dist_df[g], n_iters=n_boots)
+
+    stat_df = pd.DataFrame.from_dict(group_dist_df)
+
+    return stat_df
