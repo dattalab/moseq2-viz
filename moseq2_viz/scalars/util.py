@@ -627,10 +627,15 @@ def compute_syllable_position_heatmaps(scalar_df, syllable_key='labels (usage so
 
     def _compute_histogram(df):
         df = df[centroid_keys].dropna(how='any')
-        H, _, _ = np.histogram2d(df.iloc[:, 1], df.iloc[:, 0], bins=bins, density=normalize)
+        try:
+            H, _, _ = np.histogram2d(df.iloc[:, 1], df.iloc[:, 0], bins=bins, density=normalize)
+        except KeyError:
+            H = np.zeros((bins, bins))
+
         return H
 
     filtered_df = scalar_df[scalar_df[syllable_key].isin(syllables)]
+
     hists = filtered_df.groupby(['group', 'uuid', 'SessionName', 'SubjectName', syllable_key]).apply(_compute_histogram)
 
     return hists
