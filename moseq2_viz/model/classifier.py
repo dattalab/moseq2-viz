@@ -184,7 +184,7 @@ def run_classifier(mean_df, stat='usage', output_file='confusion_matrix.pdf', no
 
     syllable_df = mean_df.groupby(['syllable', 'uuid', 'group'], as_index=False).mean()
 
-    unique_groups = syllable_df.group.unique()
+    unique_groups = sorted(syllable_df.group.unique())
 
     X, y, mapping, rev_mapping = get_Xy_values(syllable_df, unique_groups, stat=stat)
 

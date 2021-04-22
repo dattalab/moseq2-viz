@@ -6,6 +6,7 @@ import numpy as np
 import seaborn as sns
 from itertools import product
 import matplotlib.pyplot as plt
+from collections import OrderedDict
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 
@@ -72,7 +73,7 @@ def run_2d_embedding(mean_df, stat='usage', output_file='2d_embedding.pdf', embe
 
     syllable_df = mean_df.groupby(['syllable', 'uuid', 'group'], as_index=False).mean()
 
-    unique_groups = syllable_df.group.unique()
+    unique_groups = sorted(syllable_df.group.unique())
 
     X, y, mapping, rev_mapping = get_Xy_values(syllable_df, unique_groups, stat=stat)
 
