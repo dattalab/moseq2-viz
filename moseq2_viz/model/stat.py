@@ -256,6 +256,7 @@ def run_kruskal(
         seed=42,
         thresh=0.05,
         mc_method="fdr_bh",
+        verbose=True
 ):
     """
     Runs Kruskal-Wallis Hypothesis test and Dunn's posthoc multiple comparisons test for a
@@ -331,9 +332,8 @@ def run_kruskal(
     )[1]
 
     df_k_real["is_sig"] = df_k_real["p_adj"] <= thresh
-    print(
-        f"Found {df_k_real['is_sig'].sum()} syllables that pass threshold {thresh} with {mc_method}"
-    )
+    if verbose:
+        print(f"Found {df_k_real['is_sig'].sum()} syllables that pass threshold {thresh} with {mc_method}")
 
     # Run Dunn's z-test statistics
     (
@@ -352,6 +352,7 @@ def run_kruskal(
         n_perm,
         thresh,
         mc_method,
+        verbose=verbose
     )
 
     # combine Dunn's test results into single DataFrame
@@ -360,8 +361,9 @@ def run_kruskal(
     dunn_results_df = df_z.reset_index().melt(id_vars="syllable")
 
     # take the intersection of KW and Dunn's tests
-    print("permutation within group-pairs (2 groups)")
-    print("intersection of Kruskal-Wallis and Dunn's tests")
+    if verbose:
+        print("permutation within group-pairs (2 groups)")
+        print("intersection of Kruskal-Wallis and Dunn's tests")
 
     # Get intersecting significant syllables between
     intersect_sig_syllables = {}
@@ -369,7 +371,8 @@ def run_kruskal(
         intersect_sig_syllables[pair] = np.where(
             (df_pair_corrected_pvalues[pair] < thresh) & (df_k_real.is_sig)
         )[0]
-        print(pair, len(intersect_sig_syllables[pair]), intersect_sig_syllables[pair])
+        if verbose:
+            print(pair, len(intersect_sig_syllables[pair]), intersect_sig_syllables[pair])
 
     return df_k_real, dunn_results_df, intersect_sig_syllables
 
@@ -382,6 +385,7 @@ def compute_pvalues_for_group_pairs(
         n_perm=10000,
         thresh=0.05,
         mc_method="fdr_bh",
+        verbose=True
 ):
     """
     Adjusts the p-values from Dunn's z-test statistics and computes the resulting significant syllables with the
@@ -404,9 +408,10 @@ def compute_pvalues_for_group_pairs(
     significant_syllables (list): List of corrected KW significant syllables (syllables with p-values < thresh)
     """
 
-    # do empirical p-val calculation for all group permutation
-    print(f"Permutation across all {len(group_names)} groups")
-    print(f"significant syllables for each pair with FDR < {thresh}")
+    if verbose:
+        # do empirical p-val calculation for all group permutation
+        print(f"Permutation across all {len(group_names)} groups")
+        print(f"significant syllables for each pair with FDR < {thresh}")
 
     p_vals_allperm = {}
     for pair in combinations(group_names, 2):
