@@ -19,7 +19,7 @@ from moseq2_viz.util import (parse_index, get_index_hits, get_metadata_path, cle
                              h5_to_dict, recursive_find_h5s)
 from moseq2_viz.model.trans_graph import get_trans_graph_groups, compute_and_graph_grouped_TMs
 from moseq2_viz.viz import (plot_syll_stats_with_sem, scalar_plot, plot_mean_group_heatmap,
-                            plot_verbose_heatmap, save_fig, plot_cp_comparison, plot_group_scalar_violin_plots)
+                            plot_verbose_heatmap, save_fig, plot_cp_comparison, plot_group_violin_plots)
 from moseq2_viz.model.util import (relabel_by_usage, parse_model_results,
                                    get_best_fit, compute_behavioral_statistics,
                                    make_separate_crowd_movies, labels_to_changepoints)
@@ -233,7 +233,7 @@ def plot_scalar_violin_plot_wrapper(index_file, output_file, stat='velocity_2d_m
                                                  n_boots=n_boots,
                                                  thresh=thresh)
 
-    fig, ax = plot_group_scalar_violin_plots(group_stat_df, stat=stat, order=order, fig_size=fig_size)
+    fig, ax = plot_group_violin_plots(group_stat_df, stat=stat, order=order, fig_size=fig_size)
 
     # Save figures
     save_fig(fig, output_file)

@@ -645,7 +645,7 @@ def plot_cp_comparison(model_results, pc_cps, plot_all=False, best_model=None, b
 
     return fig, ax
 
-def plot_group_scalar_violin_plots(data_df, stat='velocity_2d_mm', order=None, figsize=(10, 7)):
+def plot_group_violin_plots(data_df, stat='velocity_2d_mm', order=None, figsize=(10, 7)):
     '''
     Plots violin plots for each group/column provided in the data_df.
 
