@@ -156,17 +156,17 @@ def write_crowd_movies(sorted_index, config_data, ordering, labels, label_uuids,
                         index=sorted_index)
 
     matrix_fun = partial(make_crowd_matrix,
-                            nexamples=config_data.get('max_examples', 20),
-                            max_dur=config_data.get('max_dur', 60),
-                            min_dur=config_data.get('min_dur', 0),
-                            min_height=config_data.get('min_height', 10),
-                            crop_size=vid_parameters.get('crop_size', (80, 80)),
-                            raw_size=config_data.get('raw_size', (512, 424)),
-                            scale=config_data.get('scale', 1),
-                            pad=config_data.get('pad', 30),
-                            frame_path=config_data.get('frame_path', 'frames'),
-                            legacy_jitter_fix=config_data.get('legacy_jitter_fix', False),
-                            **clean_params)
+                         nexamples=config_data.get('max_examples', 20),
+                         max_dur=config_data.get('max_dur', 60),
+                         min_dur=config_data.get('min_dur', 0),
+                         min_height=config_data.get('min_height', 10),
+                         crop_size=vid_parameters.get('crop_size', (80, 80)),
+                         raw_size=config_data.get('raw_size', (512, 424)),
+                         scale=config_data.get('scale', 1),
+                         pad=config_data.get('pad', 30),
+                         frame_path=config_data.get('frame_path', 'frames'),
+                         legacy_jitter_fix=config_data.get('legacy_jitter_fix', False),
+                         **clean_params)
 
     write_fun = partial(write_frames_preview, fps=vid_parameters['fps'], depth_min=config_data['min_height'],
                         depth_max=config_data['max_height'], cmap=config_data['cmap'], progress_bar=progress_bar)
