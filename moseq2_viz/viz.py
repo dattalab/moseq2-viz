@@ -9,6 +9,7 @@ import cv2
 import h5py
 import warnings
 import numpy as np
+import pandas as pd
 import seaborn as sns
 import matplotlib as mpl
 from tqdm.auto import tqdm
@@ -16,6 +17,9 @@ from os.path import dirname
 from scipy.stats import mode
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
+from itertools import combinations
+from statannot import add_stat_annotation
+from moseq2_viz.info.util import entropy_rate, entropy
 from moseq2_viz.model.util import sort_syllables_by_stat, sort_syllables_by_stat_difference
 
 
@@ -552,7 +556,7 @@ def plot_verbose_heatmap(pdfs, sessions, groups, subjectNames, normalize=False, 
 
     uniq_groups = np.unique(groups)
     count = [len([grp1 for grp1 in groups if grp1 == grp]) for grp in uniq_groups]
-    figsize = (np.round(2.8 * len(uniq_groups)), np.round(2.9 * np.max(count)))
+    figsize = (np.round(2.8 * len(uniq_groups)), np.round(3.0 * np.max(count)))
 
     fig, ax = plt.subplots(nrows=np.max(count), ncols=len(uniq_groups), sharex=True,
                            sharey=True, figsize=figsize)
@@ -587,8 +591,7 @@ def plot_verbose_heatmap(pdfs, sessions, groups, subjectNames, normalize=False, 
 
 def plot_cp_comparison(model_results, pc_cps, plot_all=False, best_model=None, bw_adjust=0.4):
     '''
-    Plot the duration distributions for model labels and
-    principal component changepoints.
+    Plot the duration distributions for model labels and principal component changepoints.
 
     Parameters
     ----------
@@ -645,7 +648,7 @@ def plot_cp_comparison(model_results, pc_cps, plot_all=False, best_model=None, b
 
     return fig, ax
 
-def plot_group_violin_plots(data_df, stat='velocity_2d_mm', order=None, figsize=(10, 7)):
+def plot_group_violin_plots(data_df, stat='velocity_2d_mm', test='Kruskal', order=None, figsize=(10, 7)):
     '''
     Plots violin plots for each group/column provided in the data_df.
 
@@ -666,7 +669,12 @@ def plot_group_violin_plots(data_df, stat='velocity_2d_mm', order=None, figsize=
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     # draw violin plots
-    ax = sns.violinplot(data=data_df, order=order)
+    ax = sns.violinplot(data=data_df, order=order, dodge=False)
+    add_stat_annotation(ax, data=data_df, order=order,
+                        box_pairs=list(combinations(data_df.columns, 2)),
+                        pvalue_format_string='{:.3f}',
+                        test='Kruskal', text_format='star',
+                        loc='inside', verbose=2)
 
     # format axes
     plt.xticks(rotation=45)
@@ -675,5 +683,46 @@ def plot_group_violin_plots(data_df, stat='velocity_2d_mm', order=None, figsize=
     # format plot
     plt.tight_layout()
     sns.despine()
+
+    return fig, ax
+
+def plot_group_entropy_rate_distributions(labels, group, label_group, order=None, rate=True, test='Kruskal', figsize=(10, 7)):
+    '''
+    Plots violin plots for each group representing their syllable usage entropy
+     (if rate=False) or entropy rate (if rate=True).
+
+    Parameters
+    ----------
+    labels (list of 1d np.arrays): list of resorted (frame-by-frame) syllable labels for each session.
+    group (list of strings): unique list of groups to compute entropies for.
+    label_group (string of strings): list of group names corresponding with each index in the labels array.
+    order (list of strings or None): list of group names to order the violin plots by.
+    rate (bool): indicates whether to compute the entropy or the entropy rate.
+    test (str): statistical significance test to run, to place annotations above each group pair in the figure.
+    figsize (2-int-tuple): tuple to indicate the outputted figure size.
+
+    Returns
+    -------
+    fig (pyplot figure): returned violin plot figure.
+    ax (pyplot axis): plotted figure axis object.
+    '''
+
+    ERs = []
+    for g in group:
+        idx = np.array(label_group) == g
+        if rate:
+            group_er = np.array(entropy_rate(list(np.array(labels)[idx])))
+        else:
+            group_er = np.array(entropy(list(np.array(labels)[idx])))
+        ERs.append(group_er)
+
+    er_df = pd.DataFrame(np.array(ERs).T, columns=group)
+
+    if rate:
+        stat = 'Entropy Rate (bits)'
+    else:
+        stat = 'Entropy (bits)'
+
+    fig, ax = plot_group_violin_plots(er_df, stat=stat, order=order, test=test, figsize=figsize)
 
     return fig, ax

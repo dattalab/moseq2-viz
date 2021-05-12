@@ -3,9 +3,6 @@ Utility functions for computing syllable usage entropy, and syllable transition 
 These can be used for measuring modeling model performance and group separability.
 '''
 import numpy as np
-import pandas as pd
-from moseq2_viz.model.stat import bootstrap_me
-from moseq2_viz.viz import plot_group_violin_plots
 from moseq2_viz.model.trans_graph import get_transition_matrix
 from moseq2_viz.model.util import get_syllable_statistics, relabel_by_usage
 
@@ -166,31 +163,3 @@ def transition_entropy(labels, tm_smoothing=0, truncate_syllable=40, transition_
         entropies.append(ent)
 
     return entropies
-
-def plot_group_entropy_rate_distributions(labels, group, label_group, order=None, figsize=(10, 7)):
-    '''
-
-    Parameters
-    ----------
-    labels
-    group
-    label_group
-    order
-    figsize
-
-    Returns
-    -------
-
-    '''
-
-    ERs = []
-    for g in group:
-        idx = np.array(label_group) == g
-        group_er = bootstrap_me(np.array(entropy_rate(list(np.array(labels)[idx]))))
-        ERs.append(group_er)
-
-    er_df = pd.DataFrame(np.array(ERs).T, columns=group)
-
-    fig, ax = plot_group_violin_plots(er_df, stat='Entropy Rate (bits)', order=order, figsize=figsize)
-
-    return fig, ax
