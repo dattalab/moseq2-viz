@@ -817,7 +817,11 @@ def prepare_model_dataframe(model_path, pca_path):
     usage, _ = relabel_by_usage(labels, count='usage')
     frames, _ = relabel_by_usage(labels, count='frames')
 
-    scores_idx = h5_to_dict(pca_path, path='scores_idx')
+    try:
+        scores_idx = h5_to_dict(pca_path, path='scores_idx')
+    except OSError:
+        raise ValueError('The inputted index file is missing the path to the pca_scores.h5 file in the pca_path field.\n'
+                         'Edit the file to include the path and run the command again.')
 
     # make sure all pcs align with labels
     if not all(k in scores_idx and len(scores_idx[k]) == len(v) for k, v in labels.items()):

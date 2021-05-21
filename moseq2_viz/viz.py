@@ -657,6 +657,7 @@ def plot_group_violin_plots(data_df, stat='velocity_2d_mm', test='Kruskal', orde
     data_df (pd.DataFrame): DataFrame containing N rows x M columns, where N represents the number of examples
      and each column M is a unique group.
     stat (str): Name of the statistic being plotted.
+    test (str): statistical significance test to run, to place annotations above each group pair in the figure.
     order (1D list or None): list to specify the order of the violin plots.
     figsize (2-tuple): tuple to indicate the outputted figure size.
 
@@ -672,9 +673,8 @@ def plot_group_violin_plots(data_df, stat='velocity_2d_mm', test='Kruskal', orde
     ax = sns.violinplot(data=data_df, order=order, dodge=False)
     add_stat_annotation(ax, data=data_df, order=order,
                         box_pairs=list(combinations(data_df.columns, 2)),
-                        pvalue_format_string='{:.3f}',
-                        test='Kruskal', text_format='star',
-                        loc='inside', verbose=2)
+                        test=test, text_format='star',
+                        loc='outside', verbose=2)
 
     # format axes
     plt.xticks(rotation=45)
