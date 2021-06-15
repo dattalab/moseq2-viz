@@ -676,9 +676,12 @@ def compute_group_scalar_mean_df(scalar_df, stat='velocity_2d_mm', n_boots=10000
         group_dist_df[group] = group_stat[stat].values
 
     # bootstrap groups
-    for g in group_dist_df.keys():
-        group_dist_df[g] = bootstrap_me(group_dist_df[g], n_iters=n_boots)
+    if n_boots > 0:
+        for g in group_dist_df.keys():
+            group_dist_df[g] = bootstrap_me(group_dist_df[g], n_iters=n_boots)
 
-    stat_df = pd.DataFrame.from_dict(group_dist_df)
+        stat_df = pd.DataFrame.from_dict(group_dist_df)
+    else:
+        stat_df = pd.DataFrame.from_dict(group_dist_df, orient='index').transpose()
 
     return stat_df

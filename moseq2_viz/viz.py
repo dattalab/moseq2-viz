@@ -671,7 +671,7 @@ def plot_group_violin_plots(data_df, stat='velocity_2d_mm', test='Kruskal', orde
 
     # draw violin plots
     ax = sns.violinplot(data=data_df, order=order, dodge=False)
-    add_stat_annotation(ax, data=data_df, order=order,
+    add_stat_annotation(ax, data=data_df, order=order, comparisons_correction=None,
                         box_pairs=list(combinations(data_df.columns, 2)),
                         test=test, text_format='star',
                         loc='outside', verbose=2)
