@@ -648,7 +648,9 @@ def plot_cp_comparison(model_results, pc_cps, plot_all=False, best_model=None, b
 
     return fig, ax
 
-def plot_group_violin_plots(data_df, stat='velocity_2d_mm', test='Kruskal', order=None, figsize=(10, 7)):
+def plot_group_violin_plots(data_df, stat='velocity_2d_mm',
+                            test='Kruskal', order=None,
+                            annotate=False, figsize=(10, 7)):
     '''
     Plots violin plots for each group/column provided in the data_df.
 
@@ -659,6 +661,7 @@ def plot_group_violin_plots(data_df, stat='velocity_2d_mm', test='Kruskal', orde
     stat (str): Name of the statistic being plotted.
     test (str): statistical significance test to run, to place annotations above each group pair in the figure.
     order (1D list or None): list to specify the order of the violin plots.
+    annotate (bool): Runs pair-wise statistical significance tests and annotates the plot showing the results.
     figsize (2-tuple): tuple to indicate the outputted figure size.
 
     Returns
@@ -671,10 +674,11 @@ def plot_group_violin_plots(data_df, stat='velocity_2d_mm', test='Kruskal', orde
 
     # draw violin plots
     ax = sns.violinplot(data=data_df, order=order, dodge=False)
-    add_stat_annotation(ax, data=data_df, order=order, comparisons_correction=None,
-                        box_pairs=list(combinations(data_df.columns, 2)),
-                        test=test, text_format='star',
-                        loc='outside', verbose=2)
+    if annotate:
+        add_stat_annotation(ax, data=data_df, order=order, comparisons_correction=None,
+                            box_pairs=list(combinations(data_df.columns, 2)),
+                            test=test, text_format='star',
+                            loc='outside', verbose=2)
 
     # format axes
     plt.xticks(rotation=45)
@@ -686,7 +690,9 @@ def plot_group_violin_plots(data_df, stat='velocity_2d_mm', test='Kruskal', orde
 
     return fig, ax
 
-def plot_group_entropy_rate_distributions(labels, group, label_group, order=None, rate=True, test='Kruskal', figsize=(10, 7)):
+def plot_group_entropy_rate_distributions(labels, group, label_group,
+                                          order=None, rate=True, test='Kruskal',
+                                          annotate=False, figsize=(10, 7)):
     '''
     Plots violin plots for each group representing their syllable usage entropy
      (if rate=False) or entropy rate (if rate=True).
@@ -707,22 +713,22 @@ def plot_group_entropy_rate_distributions(labels, group, label_group, order=None
     ax (pyplot axis): plotted figure axis object.
     '''
 
-    ERs = []
+    ERs = {}
     for g in group:
         idx = np.array(label_group) == g
         if rate:
             group_er = np.array(entropy_rate(list(np.array(labels)[idx])))
         else:
             group_er = np.array(entropy(list(np.array(labels)[idx])))
-        ERs.append(group_er)
+        ERs[g] = group_er
 
-    er_df = pd.DataFrame(np.array(ERs).T, columns=group)
+    er_df = pd.DataFrame.from_dict(ERs, orient='index').T
 
     if rate:
         stat = 'Entropy Rate (bits)'
     else:
         stat = 'Entropy (bits)'
 
-    fig, ax = plot_group_violin_plots(er_df, stat=stat, order=order, test=test, figsize=figsize)
+    fig, ax = plot_group_violin_plots(er_df, stat=stat, order=order, test=test, annotate=annotate, figsize=figsize)
 
     return fig, ax
