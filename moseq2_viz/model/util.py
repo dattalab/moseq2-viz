@@ -827,6 +827,10 @@ def prepare_model_dataframe(model_path, pca_path):
     if not all(k in scores_idx and len(scores_idx[k]) == len(v) for k, v in labels.items()):
         raise ValueError('PC scores don\'t align with labels or label UUID not found in PC scores')
 
+    # Handle legacy models
+    if isinstance(mdl['metadata']['groups'], list):
+        mdl['metadata']['groups'] = {uuid: group for uuid, group in zip(mdl['keys'], mdl['metadata']['groups'])}
+
     _df = pd.concat((pd.DataFrame({
         'uuid': k,
         'labels (original)': v,
