@@ -650,7 +650,7 @@ def plot_cp_comparison(model_results, pc_cps, plot_all=False, best_model=None, b
 
 def plot_group_violin_plots(data_df, stat='velocity_2d_mm',
                             test='Kruskal', order=None,
-                            annotate=False, figsize=(10, 7)):
+                            annotate=False, fig_size=(10, 7)):
     '''
     Plots violin plots for each group/column provided in the data_df.
 
@@ -670,7 +670,7 @@ def plot_group_violin_plots(data_df, stat='velocity_2d_mm',
     ax (pyplot axis): plotted figure axis object.
     '''
 
-    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    fig, ax = plt.subplots(1, 1, figsize=fig_size)
 
     # draw violin plots
     ax = sns.violinplot(data=data_df, order=order, dodge=False)
