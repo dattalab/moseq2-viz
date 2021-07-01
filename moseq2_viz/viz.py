@@ -729,6 +729,6 @@ def plot_group_entropy_rate_distributions(labels, group, label_group,
     else:
         stat = 'Entropy (bits)'
 
-    fig, ax = plot_group_violin_plots(er_df, stat=stat, order=order, test=test, annotate=annotate, figsize=figsize)
+    fig, ax = plot_group_violin_plots(er_df, stat=stat, order=order, test=test, annotate=annotate, fig_size=figsize)
 
     return fig, ax
