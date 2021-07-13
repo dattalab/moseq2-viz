@@ -1208,3 +1208,37 @@ def sort_syllables_by_stat(complete_df, stat='usage', max_sylls=None):
     relabel_mapping = {o: i for i, o in enumerate(ordering)}
 
     return ordering, relabel_mapping
+
+def get_Xy_values(syll_means, unique_groups, stat='usage'):
+    '''
+    Computes the syllable mean statistics for each session, stored in X. Computes and corresponding
+     mapped group name value for each of the sessions to be tracked when plotting the values in the embedding steps.
+
+    Parameters
+    ----------
+    syll_means (pd DataFrame): Dataframe of syllable mean statistics
+    unique_groups (1D list): list of unique groups in the syll_means dataframe.
+    stat (str): statistic column to read from the syll_means df.
+
+    Returns
+    -------
+    X (2D np.array): mean syllable statistics for each session. (nsessions x nsyllables)
+    y (1D list): list of group names corresponding to each row in X.
+    mapping (dict): dictionary conataining mappings from group string to integer for later embedding.
+    rev_mapping (dict): inverse mapping dict to retrieve the group names given their mapped integer value.
+    '''
+
+    X, y = [], []
+
+    for u in syll_means.uuid.unique():
+        uuid_idx = syll_means['uuid'] == u
+
+        X.append(syll_means[uuid_idx][stat].to_numpy())
+        y.append(syll_means[uuid_idx]['group'].unique()[0])
+
+    mapping = {g: i for i, g in enumerate(unique_groups)}
+    rev_mapping = {v: k for k, v in mapping.items()}
+
+    y = np.array([mapping[l] for l in y])
+
+    return np.array(X), y, mapping, rev_mapping
