@@ -99,7 +99,7 @@ def get_behavioral_distance(index, model_file, whiten='all',
                 max_syllable = lbl.max() + 1
 
     for dist in distances:
-        if 'ar' in dist.lower():
+        if dist.lower() in ['ar[init]', 'ar[dtw]']:
 
             ar_mat = model_fit['model_parameters']['ar_mat']
             npcs = ar_mat[0].shape[0]
