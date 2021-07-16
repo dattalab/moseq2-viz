@@ -388,10 +388,18 @@ def get_syllable_slices(syllable, labels, label_uuids, index, trim_nans: bool = 
         match_idx = trim_idx[np.where(label_arr == syllable)[0]]
         breakpoints = np.where(np.diff(match_idx, axis=0) > 1)[0]
 
-        if len(breakpoints) < 1:
+        if len(match_idx) > 0 and len(breakpoints) < 1:
+            # CASE: if only one emission, breakpoints will be empty, since all diffs are 1
+            breakpoints = [(0, len(match_idx)-1)]
+
+        elif len(breakpoints) > 0:
+            # More than one emission in labels
+            breakpoints = zip(np.r_[0, breakpoints+1], np.r_[breakpoints, len(match_idx)-1])
+
+        else:
+            # Zero emissions found
             continue
 
-        breakpoints = zip(np.r_[0, breakpoints+1], np.r_[breakpoints, len(match_idx)-1])
         for i, j in breakpoints:
             # strike out movies that have missing frames
             if missing_frames is not None:
