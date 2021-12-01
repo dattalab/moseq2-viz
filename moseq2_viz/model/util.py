@@ -892,6 +892,11 @@ def prepare_model_dataframe(model_path, pca_path):
 
     scores_idx = h5_to_dict(pca_path, path='scores_idx')
 
+    # make sure all pc score indices align with the frame labels
+    for k, v in labels.items():
+        if len(scores_idx[k]) != len(labels[k]):
+            scores_idx[k] = np.arange(len(labels[k]))
+
     # make sure all pcs align with labels
     if not all(k in scores_idx and len(scores_idx[k]) == len(v) for k, v in labels.items()):
         raise ValueError('PC scores don\'t align with labels or label UUID not found in PC scores')
