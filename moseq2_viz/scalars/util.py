@@ -442,7 +442,7 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
 
     dfs = []
     # Iterate through index file session info and paths
-    for k, v in tqdm(index['files'].items(), disable=disable_output, desc='Creating Scalar DataFrame'):
+    for k, v in tqdm(index['files'].items(), disable=disable_output, desc='Creating MoSeq DataFrame'):
         if has_model:
             # skipping the session uuids (found in the index file) that are not included in the model uuids.
             if k not in model_uuids:
