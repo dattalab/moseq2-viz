@@ -887,7 +887,7 @@ def prepare_model_dataframe(model_path, pca_path):
 def simulate_ar_trajectory(ar_mat, init_points=None, sim_points=100):
     """
     Simulate auto-regressive trajectory matrices from
-    a set of initalized points.
+    a set of initialized points.
 
     Args:
     ar_mat (2D np.ndarray): numpy array representing the autoregressive matrix of a model state with shape (npcs, npcs * nlags + 1)

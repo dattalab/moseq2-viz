@@ -70,7 +70,7 @@ def ztest_vect(d1, d2):
 
 def bootstrap_group_means(df, group1, group2, statistic="usage", max_syllable=40):
     """
-    compute boostrapped group means
+    compute bootstrapped group means
 
     Args:
     df (pandas.DataFrame): dataframe that contains syllable statistics per session (mean_df/stats_df)
@@ -565,7 +565,7 @@ def ttest(df, group1, group2, statistic="usage", max_syllable=40, verbose=False,
 
 def get_sig_syllables(df_pvals, thresh=0.05, mc_method="fdr_bh", verbose=False):
     """
-    Runs multiple p-value comparisons test given a set alpha threshold with mutliple test correction.
+    Runs multiple p-value comparisons test given a set alpha threshold with multiple test correction.
 
     Args:
     df_pvals (pandas.DataFrame): dataframe listing raw p-values

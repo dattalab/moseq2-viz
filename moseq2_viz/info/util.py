@@ -55,7 +55,7 @@ def entropy_rate(labels, truncate_syllable=40, normalize='bigram',
     truncate_syllable (int): maximum number of labels to keep for this calculation.
     normalize (str): the type of transition matrix normalization to perform.
     smoothing (float): a constant as pseudocount added to label usages before normalization
-    tm_smoothing (float): a constant as pseudocount added to label transtition counts before normalization.
+    tm_smoothing (float): a constant as pseudocount added to label transition counts before normalization.
     relabel_by (str): how to re-order labels. Options are: 'usage', 'frames', or None.
 
     Returns:
@@ -111,7 +111,7 @@ def transition_entropy(labels, tm_smoothing=0, truncate_syllable=40, transition_
 
     Args:
     labels (list or np.ndarray): a list of label arrays, where each entry in the list is an array of labels for one session.
-    tm_smoothing (float): a constant as pseudocount added to label transtition counts before normalization.
+    tm_smoothing (float): a constant as pseudocount added to label transition counts before normalization.
     truncate_syllable (int): maximum number of relabeled syllable to keep for this calculation
     transition_type (str): can be either "incoming" or "outgoing" to compute the entropy of each incoming or outgoing syllable transition.
     relabel_by (str): how to re-order labels. Options are: 'usage', 'frames', or None.
