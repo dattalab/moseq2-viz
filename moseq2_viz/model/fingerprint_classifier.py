@@ -246,7 +246,7 @@ def classifier_fingerprint(summary, features=['MoSeq'], preprocessor=None, class
         preprocessor (sklearn.preprocessing object, optional): Scalar for scaling the data by feature. Defaults to None.
         target (list, optional): labels the classifier predicts. Defaults to ['group'].
         param_search (bool, optional): run GridSearchCV to find the regularization param for classifier. Defaults to True.
-        C_list (numpy.array, optional): list of C regularization paramters to search through. Defaults to None. If None, C_list will search through np.logspace(-6,3, 50)
+        C_list (numpy.array, optional): list of C regularization parameters to search through. Defaults to None. If None, C_list will search through np.logspace(-6,3, 50)
         model_type (str, optional): name of the linear classifier. 'lr' for logistic regression or 'svc' for linearSVC. Defaults to 'lr'.
         cv (str, optional): cross validation type. 'loo' for LeaveOneOut 'skf' for StratifiedKFold. Defaults to 'loo'.
         n_splits (int, optional): number of splits for StratifiedKFold. Defaults to 5.

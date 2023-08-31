@@ -204,7 +204,7 @@ def plot_syllable_stat_wrapper(model_fit, index_file, output_file, stat='usage',
     index_file (str): path to index file.
     output_file (str): filename for syllable usage graph.
     stat (str): syllable statistic to plot.
-    sort (bool): sort syllables by parameter specified in count paramter.
+    sort (bool): sort syllables by parameter specified in count parameter.
     count (str): method to compute syllable mean usage, either 'usage' or 'frames'. 
     group (tuple, list, None): tuple or list of groups to include in usage plot. (None to graph all groups)
     max_syllable (int): the index of the maximum number of syllables to include

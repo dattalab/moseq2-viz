@@ -76,7 +76,7 @@ def write_crowd_movie_info_file(model_path, model_fit, index_file, output_dir):
 
     Args:
     model_path (str): path to model used to generate movies
-    model_fit (dict): loaded ARHMM mdoel results
+    model_fit (dict): loaded ARHMM model results
     index_file (str): path to index file used with model
     output_dir (str): path to crowd movies directory to store file in.
     """

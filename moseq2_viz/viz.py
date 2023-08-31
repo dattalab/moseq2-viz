@@ -29,8 +29,8 @@ def _validate_and_order_syll_stats_params(complete_df, stat='usage', ordering='s
     ordering (str, list, None): statistics for sorting syllables on or a list for syllable ordering.
     max_sylls (int): the index of the maximum number of syllables to include
     groups (list): list of groups to include in plot. If groups=None, all groups will be plotted.
-    ctrl_group (str): name of control group for computing usage difference beween two groups.
-    exp_group (str): name of experimental group for computing usage difference beween two groups.
+    ctrl_group (str): name of control group for computing usage difference between two groups.
+    exp_group (str): name of experimental group for computing usage difference between two groups.
     colors (list): list of user-selected colors to represent the data
     figsize (tuple): tuple value of length = 2, representing (height x width) of the plotted figure dimensions
 
@@ -160,10 +160,10 @@ def make_crowd_matrix(slices, nexamples=50, pad=30, raw_size=(512, 424), outmovi
     min_dur (int): minimum syllable duration.
     scale (int): mouse size scaling factor.
     center (bool): boolean flag that indicates whether mice are centered.
-    rotate (bool): boolean flag that indicates wehther to rotate mice and orient them.
-    select_median_duration_instances (bool): flag that indicates wehther to select examples with syallable duration closer to median.
+    rotate (bool): boolean flag that indicates whether to rotate mice and orient them.
+    select_median_duration_instances (bool): flag that indicates whether to select examples with syallable duration closer to median.
     min_height (int): minimum max height from floor to use.
-    legacy_jitter_fix (bool): flag that indicates wehther to apply jitter fix for K1 camera.
+    legacy_jitter_fix (bool): flag that indicates whether to apply jitter fix for K1 camera.
     kwargs (dict): extra keyword arguments
 
     Returns:
@@ -175,7 +175,7 @@ def make_crowd_matrix(slices, nexamples=50, pad=30, raw_size=(512, 424), outmovi
 
     rng = np.random.default_rng(seed)
 
-    # set up x, y value to crop out the mouse with respect to the mouse centriod
+    # set up x, y value to crop out the mouse with respect to the mouse centroid
     xc0, yc0 = crop_size[1] // 2, crop_size[0] // 2
     xc = np.arange(-xc0, xc0 + 1, dtype='int16')
     yc = np.arange(-yc0, yc0 + 1, dtype='int16')
@@ -287,7 +287,7 @@ def make_crowd_matrix(slices, nexamples=50, pad=30, raw_size=(512, 424), outmovi
 
             rot_mat = cv2.getRotationMatrix2D((xc0, yc0), angles[i], 1)
 
-            # add the new instance to the exisiting crowd matrix
+            # add the new instance to the existing crowd matrix
             old_frame = crowd_matrix[i]
             new_frame = np.zeros_like(old_frame)
 
@@ -616,7 +616,7 @@ def plot_cp_comparison(model_results, pc_cps, plot_all=False, best_model=None, b
     pc_cps (np.array): Computed PC changepoints
     plot_all (bool): Boolean flag that indicates whether to plot all model changepoints for all keys included in model_cps dict.
     best_model (str): key name to the model with the closest median syllable duration
-    bw_adjust (float): fraction to modify bandwith of kernel density estimate. (lower = higher definition)
+    bw_adjust (float): fraction to modify bandwidth of kernel density estimate. (lower = higher definition)
 
     Returns:
     fig (pyplot.figure): syllable usage ordered by frequency, 90% usage marked
