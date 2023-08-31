@@ -106,7 +106,7 @@ copy_h5_metadata_to_yaml_command = _alias(copy_h5_metadata_to_yaml_wrapper)
 
 def get_best_fit_model(progress_paths, output_file=None, plot_all=False, fps=30, ext='p', objective='duration (mean match)'):
     """
-    Return the best model in the model foder that is closest to model free changepoint in the given objective.
+    Return the best model in the model folder that is closest to model free changepoint in the given objective.
 
     Args:
     progress_paths (dict): Dictionary containing paths the to model directory and pc scores file
