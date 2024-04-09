@@ -18,7 +18,7 @@ Model - embed Module
    :show-inheritance:
 
 Model - Fingerprint and Classifier Module
------------------------------
+-----------------------------------------
 
 .. automodule:: moseq2_viz.model.fingerprint_classifier
    :members:
@@ -34,7 +34,7 @@ Model - Stats Module
    :show-inheritance:
 
 Model - Transition Graph Module
------------------------------
+-------------------------------
 
 .. automodule:: moseq2_viz.model.trans_graph
    :members:

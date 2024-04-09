@@ -30,5 +30,12 @@ setup(
                   'pandas==1.0.5', 'networkx==2.4', 'numpy==1.18.3', 'h5py==2.10.0', 'cytoolz==0.10.1',
                   'joblib==0.15.1', 'scipy==1.3.2'],
     python_requires='>=3.6,<3.8',
-    entry_points={'console_scripts': ['moseq2-viz = moseq2_viz.cli:cli']}
+    entry_points={'console_scripts': ['moseq2-viz = moseq2_viz.cli:cli']},
+    extras_require={
+        "docs": [
+            "sphinx",
+            "sphinx-click",
+            "sphinx-rtd-theme",
+        ],
+    },
 )
