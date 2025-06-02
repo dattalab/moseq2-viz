@@ -112,7 +112,8 @@ def entropy_rate(
         elif normalize == "columns":
             tm /= tm.sum(axis=0, keepdims=True)
 
-        entropy_rate = -np.sum(usages * tm * np.log2(tm))
+        tm_safe = np.where(tm > 0, tm, 1)
+        entropy_rate = -np.sum(tm * np.log2(tm_safe), axis=0)
         ent.append(entropy_rate)
 
     return ent
@@ -175,7 +176,8 @@ def transition_entropy(
             tm = tm.T
         # if incoming, don't reshape the transition matrix
         tm = tm / tm.sum(axis=0, keepdims=True)
-        ent = -np.nansum(tm * np.log2(tm), axis=0)
+        tm_safe = np.where(tm > 0, tm, 1)
+        ent = -np.sum(tm * np.log2(tm_safe), axis=0)
         entropies.append(ent)
 
     return entropies
