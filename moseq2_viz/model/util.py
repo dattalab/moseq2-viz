@@ -43,6 +43,24 @@ def _assert_models_have_same_kappa(model_paths):
         raise ValueError('You cannot merge models trained with different kappas')
 
 
+def get_num_syllables_for_coverage(labels, n_explained=99):
+    """
+    Return the number of syllables needed to explain n_explained percent of all frames.
+
+    Args:
+    labels (list): list of syllable frame-labels for each session.
+    n_explained (int): explained usage percentage threshold (0-100).
+
+    Returns:
+    int: number of syllables needed to reach the coverage threshold.
+    """
+
+    syllable_usages = list(get_syllable_usages(labels, count='usage').values())
+    cumulative_explanation = np.cumsum(syllable_usages / sum(syllable_usages))
+    cumulative_explanation = 100 * cumulative_explanation / np.max(cumulative_explanation)
+    return int(np.argwhere(cumulative_explanation >= n_explained)[0][0])
+
+
 def compute_syllable_explained_variance(model, save_dir=os.getcwd(), n_explained=99):
     """
     Compute the maximum number of syllables to include that explain n_explained percent of all frames in the dataset.
@@ -55,14 +73,12 @@ def compute_syllable_explained_variance(model, save_dir=os.getcwd(), n_explained
     max_sylls (int): the index of the maximum number of syllables to include that explain the given percentage of the variance
     """
 
+    max_sylls = get_num_syllables_for_coverage(model['labels'], n_explained=n_explained)
+    print(f'Number of syllables explaining {n_explained}% variance: {max_sylls}')
+
     syllable_usages = list(get_syllable_usages(model['labels'], count='usage').values())
     cumulative_explanation = np.cumsum(syllable_usages / sum(syllable_usages))
-
-    # Syllables may not explain 100% of the variance due to rounding and precision
-    # Normalized cumulative explained variance by max cumulative explained variance
-    cumulative_explanation = 100 * cumulative_explanation/np.max(cumulative_explanation)
-    max_sylls = np.argwhere(cumulative_explanation >= n_explained)[0][0]
-    print(f'Number of syllables explaining {n_explained}% variance: {max_sylls}')
+    cumulative_explanation = 100 * cumulative_explanation / np.max(cumulative_explanation)
 
     fig, ax = plt.subplots(1)
     ax.set_xlabel('Number of Syllables to Include')

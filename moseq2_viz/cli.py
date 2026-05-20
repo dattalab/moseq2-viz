@@ -142,7 +142,12 @@ def make_df(model_fit, index_file, output_file):
 @click.argument("index-file", type=click.Path(exists=True, resolve_path=True))
 @click.argument("model-path", type=click.Path(exists=True, resolve_path=True))
 @click.option(
-    "--max-syllable", type=int, default=40, help="index of the max syllable to include"
+    "--max-syllable", type=int, default=None,
+    help="Max syllable to include (default: auto, enough to cover --n-explained % of usage)"
+)
+@click.option(
+    "--n-explained", type=int, default=99,
+    help="Percent of usage to cover when --max-syllable is not set (default: 99)"
 )
 @click.option(
     "--max-examples", "-m", type=int, default=40, help="number of examples to show"
@@ -318,7 +323,12 @@ def plot_verbose_position_heatmaps(index_file, output_file, normalize):
 @click.argument("index-file", type=click.Path(exists=True, resolve_path=True))
 @click.argument("model-fit", type=click.Path(exists=True, resolve_path=True))
 @click.option(
-    "--max-syllable", type=int, default=40, help="Index of max syllable to render"
+    "--max-syllable", type=int, default=None,
+    help="Max syllable to include (default: auto, enough to cover --n-explained % of usage)"
+)
+@click.option(
+    "--n-explained", type=int, default=99,
+    help="Percent of usage to cover when --max-syllable is not set (default: 99)"
 )
 @click.option(
     "-g",
@@ -407,7 +417,12 @@ def plot_transition_graph(index_file, model_fit, output_file, **config_data):
     help="How to relabel syllables",
 )
 @click.option(
-    "--max-syllable", type=int, default=40, help="Index of max syllable to render"
+    "--max-syllable", type=int, default=None,
+    help="Max syllable to include (default: auto, enough to cover --n-explained % of usage)"
+)
+@click.option(
+    "--n-explained", type=int, default=99,
+    help="Percent of usage to cover when --max-syllable is not set (default: 99)"
 )
 @click.option(
     "-g",
