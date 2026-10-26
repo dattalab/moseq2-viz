@@ -194,7 +194,8 @@ def get_transition_matrix(labels, max_syllable=100, normalize='bigram',
 
         for v in tqdm(labels, disable=disable_output, desc='Computing bigram transition probabilities'):
             # Get syllable transitions
-            transitions = get_transitions(v)[0]
+            arr = np.asarray(v)
+            transitions = arr[np.r_[True, arr[1:] != arr[:-1]]] if arr.size else arr
 
             trans_mat = n_gram_transition_matrix(transitions, n=2, max_label=max_syllable)
             init_matrix.append(trans_mat)
@@ -206,7 +207,8 @@ def get_transition_matrix(labels, max_syllable=100, normalize='bigram',
         all_mats = []
         for v in tqdm(labels, disable=disable_output, desc='Computing bigram transition probabilities'):
             # Get syllable transitions
-            transitions = get_transitions(v)[0]
+            arr = np.asarray(v)
+            transitions = arr[np.r_[True, arr[1:] != arr[:-1]]] if arr.size else arr
 
             trans_mat = n_gram_transition_matrix(transitions, n=2, max_label=max_syllable) + smoothing
 
