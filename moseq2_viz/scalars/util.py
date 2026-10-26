@@ -458,7 +458,7 @@ def scalars_to_dataframe(index: dict, include_keys: list = ['SessionName', 'Subj
             'h5_path': pth,
             'timestamps': timestamps,
             'frame index': np.arange(len(timestamps))},
-            keyfilter(lambda x: x in include_keys, v['metadata'])
+            {key: v['metadata'][key] for key in include_keys if key in v['metadata']}
         )
 
         try:
