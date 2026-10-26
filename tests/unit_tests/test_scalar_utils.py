@@ -49,8 +49,8 @@ class TestScalarUtils(TestCase):
         xhat = coords[:, 0] - cx
         yhat = coords[:, 1] - cy
 
-        fw = resolution[0] / (2 * np.deg2rad(field_of_view[0] / 2))
-        fh = resolution[1] / (2 * np.deg2rad(field_of_view[1] / 2))
+        fw = resolution[0] / (2 * np.tan(np.deg2rad(field_of_view[0] / 2)))
+        fh = resolution[1] / (2 * np.tan(np.deg2rad(field_of_view[1] / 2)))
 
         new_coords = np.zeros_like(coords)
         new_coords[:, 0] = true_depth * xhat / fw
