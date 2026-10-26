@@ -132,7 +132,7 @@ def merge_models(model_dir, ext='p',count='usage', force_merge=False,
         curr_ar = deepcopy(unit_data['model_parameters']['ar_mat'])
         # compute cost function
         # the ar matrices to find the most similar syllables
-        if cost_function == 'ar_mat':
+        if cost_function in ('ar_norm', 'ar_mat'):
             prev_ar = template['model_parameters']['ar_mat']
             cost = np.zeros((len(prev_ar), len(curr_ar)))
             for i, state1 in enumerate(prev_ar):
@@ -164,8 +164,8 @@ def merge_models(model_dir, ext='p',count='usage', force_merge=False,
         unit_data['labels'] = valmap(_map_sylls, unit_data['labels'])
 
         # remap the AR matrix
-        for k, v in filter(lambda k: k[0] != -5, mapping.items()):
-            unit_data['model_parameters']['are_mat'][k] = curr_ar[v]
+        for old_state, new_state in filter(lambda item: item[0] != -5, mapping.items()):
+            unit_data['model_parameters']['ar_mat'][new_state] = curr_ar[old_state]
         model_data[pth] = unit_data
 
     return model_data
