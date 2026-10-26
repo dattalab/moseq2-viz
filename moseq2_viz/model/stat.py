@@ -397,7 +397,7 @@ def compute_pvalues_for_group_pairs(
     df_pval = pd.DataFrame(p_vals_allperm)
 
     correct_p = lambda x: multipletests(x, alpha=thresh, method=mc_method)[1]
-    df_pval_corrected = df_pval.apply(correct_p, axis=1, result_type="broadcast")
+    df_pval_corrected = df_pval.apply(correct_p, axis=0, result_type="broadcast")
 
     return df_pval_corrected, ((df_pval_corrected[df_k_real.is_sig] < thresh).sum(0))
 
