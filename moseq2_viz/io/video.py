@@ -384,6 +384,11 @@ def write_frames_preview(
         disp_img[disp_img < 0] = 0
         disp_img[disp_img > 1] = 1
         disp_img = np.delete(use_cmap(disp_img), 3, 2) * 255
+        # OpenCV 5 asserts img.depth() == CV_8U in putText, where 4.x drew
+        # onto a float image without complaint. The colormap hands back
+        # float64 in 0-255, so the cast happens before the text is drawn
+        # rather than at the write below.
+        disp_img = disp_img.astype("uint8")
         if text is not None:
             disp_img = cv2.putText(
                 disp_img,
@@ -395,7 +400,7 @@ def write_frames_preview(
                 text_thickness,
                 cv2.LINE_AA,
             )
-        pipe.write(disp_img.astype("uint8"), format=pixel_format)
+        pipe.write(disp_img, format=pixel_format)
 
     if close_pipe:
         pipe.communicate()
