@@ -3,6 +3,7 @@ Helper functions for handling crowd movie file writing and video metadata mainte
 """
 
 import av
+from fractions import Fraction
 import cv2
 import warnings
 import numpy as np
@@ -262,7 +263,12 @@ class _VideoWriter:
 
     def __init__(self, filename, codec, pix_fmt, frame_size, fps, threads):
         self.container = av.open(str(filename), "w")
-        self.stream = self.container.add_stream(codec, rate=fps)
+        # A rate is a rational, and callers hand this one in as whatever
+        # their config or CLI made of it: an int, a float from a `type=float`
+        # option, or a string from a yaml file. 1000 is enough denominator
+        # for the broadcast rates (30000/1001 and friends) a camera reports.
+        rate = Fraction(str(fps)).limit_denominator(1000)
+        self.stream = self.container.add_stream(codec, rate=rate)
         self.stream.width, self.stream.height = frame_size
         self.stream.pix_fmt = pix_fmt
         self.stream.thread_type = "AUTO"
